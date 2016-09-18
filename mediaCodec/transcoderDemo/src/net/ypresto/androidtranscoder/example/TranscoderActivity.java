@@ -8,6 +8,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
+import net.ypresto.androidtranscoder.MediaTranscoder;
+import net.ypresto.androidtranscoder.engine.InputSurface;
+import net.ypresto.androidtranscoder.engine.OutputSurface;
+import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
+import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -29,11 +34,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
-import net.ypresto.androidtranscoder.MediaTranscoder;
-import net.ypresto.androidtranscoder.engine.InputSurface;
-import net.ypresto.androidtranscoder.engine.OutputSurface;
-import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
-import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 public class TranscoderActivity extends Activity {
 	private static final String TAG = "TranscoderActivity";
