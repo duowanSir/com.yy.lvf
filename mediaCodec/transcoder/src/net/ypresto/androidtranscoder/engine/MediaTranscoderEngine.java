@@ -89,6 +89,7 @@ public class MediaTranscoderEngine {
         }
         try {
             // NOTE: use single extractor to keep from running out audio track fast.
+        	// MediaExtractor facilitates extraction of demuxed, typically encoded, media data from a data source.
             mExtractor = new MediaExtractor();
             mExtractor.setDataSource(mInputFileDescriptor);
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
@@ -126,7 +127,8 @@ public class MediaTranscoderEngine {
         }
     }
 
-    private void setupMetadata() throws IOException {
+    private void setupMetadata() throws IOException {// 设置视频方向、长度
+    	// MediaMetadataRetriever class provides a unified interface for retrieving frame and meta data from an input media file.
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
         mediaMetadataRetriever.setDataSource(mInputFileDescriptor);
 

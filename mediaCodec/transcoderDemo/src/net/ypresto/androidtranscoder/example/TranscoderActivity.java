@@ -3,6 +3,10 @@ package net.ypresto.androidtranscoder.example;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMetadataRetriever;
+import android.media.MediaMuxer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -21,6 +25,7 @@ import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
@@ -111,10 +116,10 @@ public class TranscoderActivity extends Activity {
                         }
                     };
                     Log.d(TAG, "transcoding into " + file);
-                    mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-                    		MediaFormatStrategyPresets.createDecreaseBitrateFormatStrategy(), listener);
 //                    mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-//                    		MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
+//                    		MediaFormatStrategyPresets.createDecreaseBitrateFormatStrategy(), listener);
+                    mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
+                    		MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
                     switchButtonEnabled(true);
                 }
                 break;
@@ -160,4 +165,73 @@ public class TranscoderActivity extends Activity {
         findViewById(R.id.select_video_button).setEnabled(!isProgress);
         findViewById(R.id.cancel_button).setEnabled(isProgress);
     }
+    
+    public void testTranscode(File input, File output) {
+		if (input == null || output == null) {
+			throw new IllegalArgumentException("输入文件和输出文件不能为空");
+		}
+
+		MediaExtractor mediaExtractor = new MediaExtractor();
+		MediaMuxer mediaMuxer = null;
+		FileOutputStream fos = null;
+		FileDescriptor fd = null;
+		try {
+			fos = new FileOutputStream(input);
+			fd = fos.getFD();
+			mediaExtractor.setDataSource(fd);
+			mediaMuxer = new MediaMuxer(output.getAbsolutePath(),
+					MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+
+		int videoTrackIndex = -1;
+		MediaFormat videoTrackFormat = null;
+		String videoTrackMime = null;
+
+		int audioTrackIndex = -1;
+		MediaFormat audioTrackFormat = null;
+		String audioTrackMime = null;
+
+		int trackCount = mediaExtractor.getTrackCount();
+		for (int i = 0; i < trackCount; i++) {
+			MediaFormat mediaFormat = mediaExtractor.getTrackFormat(i);
+			String mime = mediaFormat.getString(MediaFormat.KEY_MIME);
+			if (videoTrackIndex < 0 && mime.startsWith("video/")) {
+				videoTrackIndex = i;
+				videoTrackMime = mime;
+				videoTrackFormat = mediaFormat;
+			} else if (audioTrackIndex < 0 && mime.startsWith("audio/")) {
+				audioTrackIndex = i;
+				audioTrackMime = mime;
+				audioTrackFormat = mediaFormat;
+			}
+			if (videoTrackIndex >= 0 && audioTrackIndex >= 0) {
+				break;
+			}
+		}
+		if (videoTrackIndex < 0 || audioTrackIndex < 0) {
+			throw new IllegalStateException("输入文件轨道错误");
+		}
+
+		MediaMetadataRetriever mediaMetadataRetriever = null;
+		mediaMetadataRetriever = new MediaMetadataRetriever();
+		mediaMetadataRetriever.setDataSource(fd);
+		String rotationStr = mediaMetadataRetriever
+				.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+		String dutationStr = mediaMetadataRetriever
+				.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+		Log.d(TAG, "rotationStr = " + rotationStr + " dutationStr = " + dutationStr);
+		long duration = Long.valueOf(dutationStr);
+		mediaMuxer.setOrientationHint(Integer.valueOf(rotationStr));
+		
+		// 创建输出格式
+		
+	}
 }
