@@ -205,23 +205,28 @@ public class TranscoderActivity extends Activity {
 				MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
 
 			MediaMetadataRetriever mediaMetadataRetriever = null;
+			String rotationStr = null;
+			String dutationStr = null;
+			String bitRateStr = null;
+			long duration = 0;
 			mediaMetadataRetriever = new MediaMetadataRetriever();
 			mediaMetadataRetriever.setDataSource(fd);
-			String rotationStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
-			String dutationStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-			String bitRateStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
-			Log.d(TAG, "rotationStr = " + rotationStr + " dutationStr = " + dutationStr + " bitRateStr = " + bitRateStr);
-			long duration = Long.valueOf(dutationStr);
+			rotationStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+			dutationStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+			bitRateStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
+			duration = Long.valueOf(dutationStr);
 			mediaMuxer.setOrientationHint(Integer.valueOf(rotationStr));
+			Log.d(TAG, "rotationStr = " + rotationStr + " dutationStr = " + dutationStr + " bitRateStr = " + bitRateStr);
+			if (duration <= 0) {
+				throw new IllegalArgumentException("视频元数据异常，视频长度小于零");
+			}
 
 			int videoTrackIndex = -1;
 			MediaFormat videoTrackFormat = null;
 			String videoTrackMime = null;
-
 			int audioTrackIndex = -1;
 			MediaFormat audioTrackFormat = null;
 			String audioTrackMime = null;
-
 			int trackCount = mediaExtractor.getTrackCount();
 			for (int i = 0; i < trackCount; i++) {
 				MediaFormat mediaFormat = mediaExtractor.getTrackFormat(i);
@@ -243,7 +248,7 @@ public class TranscoderActivity extends Activity {
 				throw new IllegalStateException("输入文件轨道错误");
 			}
 
-			// 创建输出格式
+			// 创建视频输出格式
 			int width = videoTrackFormat.getInteger(MediaFormat.KEY_WIDTH);
 			int height = videoTrackFormat.getInteger(MediaFormat.KEY_HEIGHT);
 			MediaFormat videoOutputFormat = MediaFormat.createVideoFormat("video/avc", width, height);
@@ -251,15 +256,13 @@ public class TranscoderActivity extends Activity {
 			videoOutputFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 10);
 			videoOutputFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
 			videoOutputFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-
+			// 创建音频输出格式
 			int keyRate = audioTrackFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
 			int audioChannels = audioTrackFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
 			MediaFormat audioFormat = MediaFormat.createAudioFormat(MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC, keyRate, audioChannels);
 			audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
 			audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, 128 * 1000);
-			
-			mediaExtractor.selectTrack(videoTrackIndex);
-			
+
 			// 视频编码
 			boolean mVideoEncoderStarted = false;
 			MediaCodec videoEncoder = null;
@@ -272,22 +275,24 @@ public class TranscoderActivity extends Activity {
 			videoEncoder.start();
 			mVideoEncoderStarted = true;
 			videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
-			
+
 			// 视频解码
 			boolean videoDecodeStarted = false;
 			MediaCodec videoDecoder = null;
 			OutputSurface videoOutputSurface = null;
 			ByteBuffer[] videoDecoderInputBuffers = null;
-	        if (videoTrackFormat.containsKey(MediaFormatExtraConstants.KEY_ROTATION_DEGREES)) {
-	        	videoTrackFormat.setInteger(MediaFormatExtraConstants.KEY_ROTATION_DEGREES, 0);
-	        }
-	        videoOutputSurface = new OutputSurface();
-	        videoDecoder = MediaCodec.createDecoderByType(videoTrackFormat.getString(MediaFormat.KEY_MIME));
-	        videoDecoder.configure(videoTrackFormat, videoOutputSurface.getSurface(), null, 0);
-	        videoDecoder.start();
-	        videoDecodeStarted = true;
-	        videoDecoderInputBuffers = videoDecoder.getInputBuffers();
-			
+			if (videoTrackFormat.containsKey(MediaFormatExtraConstants.KEY_ROTATION_DEGREES)) {
+				videoTrackFormat.setInteger(MediaFormatExtraConstants.KEY_ROTATION_DEGREES, 0);
+			}
+			videoOutputSurface = new OutputSurface();
+			videoDecoder = MediaCodec.createDecoderByType(videoTrackFormat.getString(MediaFormat.KEY_MIME));
+			videoDecoder.configure(videoTrackFormat, videoOutputSurface.getSurface(), null, 0);
+			videoDecoder.start();
+			videoDecodeStarted = true;
+			videoDecoderInputBuffers = videoDecoder.getInputBuffers();
+
+			mediaExtractor.selectTrack(videoTrackIndex);
+			mediaExtractor.selectTrack(audioTrackIndex);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
