@@ -1,4 +1,4 @@
-package net.ypresto.androidtranscoder.example;
+package com.yy.lvf.transcoder;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -23,27 +23,21 @@ import android.view.Surface;
 public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 
 	private static final String TAG = ExtractDecodeEditEncodeMuxTest.class.getSimpleName();
-	private static final boolean VERBOSE = false; // lots of logging
+	private static final boolean VERBOSE = true;
 
-	/** How long to wait for the next buffer to become available. */
 	private static final int TIMEOUT_USEC = 10000;
 
-	/** Where to output the test files. */
-	private static final File OUTPUT_FILENAME_DIR = Environment.getExternalStorageDirectory();
-
-	// parameters for the video encoder
 	private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // 视频输出mime，可指定，含义(H.264 Advanced Video Coding)
 	private static final int OUTPUT_VIDEO_BIT_RATE = 2000000; // 2Mbps
 	private static final int OUTPUT_VIDEO_FRAME_RATE = 15; // 15fps
 	private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // I帧间隔
 	private static final int OUTPUT_VIDEO_COLOR_FORMAT = MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
 
-	// parameters for the audio encoder
-	private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm"; // Advanced Audio Coding
-	private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2; // Must match the input stream.
+	private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm";
+	private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2;
 	private static final int OUTPUT_AUDIO_BIT_RATE = 128 * 1024;
 	private static final int OUTPUT_AUDIO_AAC_PROFILE = MediaCodecInfo.CodecProfileLevel.AACObjectHE;
-	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 44100; // Must match the input stream.
+	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 44100; // 必须和输入流一致
 
 	/**
 	 * Used for editing the frames.
@@ -422,6 +416,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 
 	// extracting, decoding, encoding and muxing
 	private void doExtractDecodeEditEncodeMux(MediaExtractor videoExtractor, MediaExtractor audioExtractor, MediaCodec videoDecoder, MediaCodec videoEncoder, MediaCodec audioDecoder, MediaCodec audioEncoder, MediaMuxer muxer, InputSurface inputSurface, OutputSurface outputSurface) {
+		// 根据MediaCodec工作的数据流图，每个MediaCodec基本对应两组
 		ByteBuffer[] videoDecoderInputBuffers = null;
 		ByteBuffer[] videoDecoderOutputBuffers = null;
 		ByteBuffer[] videoEncoderOutputBuffers = null;
@@ -511,8 +506,8 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					muxing, outputVideoTrack, outputAudioTrack));
 			}
 
-			while (mCopyVideo && !videoExtractorDone && (encoderOutputVideoFormat == null || muxing)) {
-				int decoderInputBufferIndex = videoDecoder.dequeueInputBuffer(TIMEOUT_USEC);
+			while (mCopyVideo && !videoExtractorDone && (encoderOutputVideoFormat == null || muxing)) {// 视频解码器读取一帧的数据
+				int decoderInputBufferIndex = videoDecoder.dequeueInputBuffer(TIMEOUT_USEC);// 请求输入buffer
 				if (decoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
 						Log.d(TAG, "no video decoder input buffer");
@@ -522,41 +517,26 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					Log.d(TAG, "video decoder: returned input buffer: " + decoderInputBufferIndex);
 				}
 				ByteBuffer decoderInputBuffer = videoDecoderInputBuffers[decoderInputBufferIndex];
-				int size = videoExtractor.readSampleData(decoderInputBuffer, 0);
+				int size = videoExtractor.readSampleData(decoderInputBuffer, 0);// 写输入buffer
 				long presentationTime = videoExtractor.getSampleTime();
 				if (VERBOSE) {
 					Log.d(TAG, "video extractor: returned buffer of size " + size);
 					Log.d(TAG, "video extractor: returned buffer for time " + presentationTime);
 				}
 				if (size >= 0) {
-					videoDecoder.queueInputBuffer(
-						decoderInputBufferIndex,
-						0,
-						size,
-						presentationTime,
-						videoExtractor.getSampleFlags());
+					videoDecoder.queueInputBuffer(decoderInputBufferIndex, 0, size, presentationTime, videoExtractor.getSampleFlags());
 				}
-				videoExtractorDone = !videoExtractor.advance();
+				videoExtractorDone = !videoExtractor.advance();// 当前采样是否提取完
 				if (videoExtractorDone) {
 					if (VERBOSE)
-						Log.d(TAG, "video extractor: EOS");
-					videoDecoder.queueInputBuffer(
-						decoderInputBufferIndex,
-						0,
-						0,
-						0,
-						MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+						Log.d(TAG, "video extractor: EOS");// EOS = end of stream
+					videoDecoder.queueInputBuffer(decoderInputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
 				}
 				videoExtractedFrameCount++;
-				// We extracted a frame, let's try something else next.
 				break;
 			}
 
-			// Extract audio from file and feed to decoder.
-			// Do not extract audio if we have determined the output format but we are not yet
-			// ready to mux the frames.
-			while (mCopyAudio && !audioExtractorDone
-				&& (encoderOutputAudioFormat == null || muxing)) {
+			while (mCopyAudio && !audioExtractorDone && (encoderOutputAudioFormat == null || muxing)) {// 音频解码器读取一帧的数据
 				int decoderInputBufferIndex = audioDecoder.dequeueInputBuffer(TIMEOUT_USEC);
 				if (decoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
@@ -574,34 +554,21 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					Log.d(TAG, "audio extractor: returned buffer for time " + presentationTime);
 				}
 				if (size >= 0) {
-					audioDecoder.queueInputBuffer(
-						decoderInputBufferIndex,
-						0,
-						size,
-						presentationTime,
-						audioExtractor.getSampleFlags());
+					audioDecoder.queueInputBuffer(decoderInputBufferIndex, 0, size, presentationTime, audioExtractor.getSampleFlags());
 				}
 				audioExtractorDone = !audioExtractor.advance();
 				if (audioExtractorDone) {
 					if (VERBOSE)
 						Log.d(TAG, "audio extractor: EOS");
-					audioDecoder.queueInputBuffer(
-						decoderInputBufferIndex,
-						0,
-						0,
-						0,
-						MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+					audioDecoder.queueInputBuffer(decoderInputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
 				}
 				audioExtractedFrameCount++;
-				// We extracted a frame, let's try something else next.
 				break;
 			}
 
-			// Poll output frames from the video decoder and feed the encoder.
-			while (mCopyVideo && !videoDecoderDone
-				&& (encoderOutputVideoFormat == null || muxing)) {
-				int decoderOutputBufferIndex = videoDecoder.dequeueOutputBuffer(
-					videoDecoderOutputBufferInfo, TIMEOUT_USEC);
+			// 从视频decoder读取数据并喂给视频encoder
+			while (mCopyVideo && !videoDecoderDone && (encoderOutputVideoFormat == null || muxing)) {
+				int decoderOutputBufferIndex = videoDecoder.dequeueOutputBuffer(videoDecoderOutputBufferInfo, TIMEOUT_USEC);
 				if (decoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
 						Log.d(TAG, "no video decoder output buffer");
@@ -616,18 +583,15 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				if (decoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 					decoderOutputVideoFormat = videoDecoder.getOutputFormat();
 					if (VERBOSE) {
-						Log.d(TAG, "video decoder: output format changed: "
-							+ decoderOutputVideoFormat);
+						Log.d(TAG, "video decoder: output format changed: " + decoderOutputVideoFormat);
 					}
 					break;
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "video decoder: returned output buffer: "
-						+ decoderOutputBufferIndex);
-					Log.d(TAG, "video decoder: returned buffer of size "
-						+ videoDecoderOutputBufferInfo.size);
+					Log.d(TAG, "video decoder: returned output buffer: " + decoderOutputBufferIndex);
+					Log.d(TAG, "video decoder: returned buffer of size " + videoDecoderOutputBufferInfo.size);
 				}
-				ByteBuffer decoderOutputBuffer = videoDecoderOutputBuffers[decoderOutputBufferIndex];
+				ByteBuffer decoderOutputBuffer = videoDecoderOutputBuffers[decoderOutputBufferIndex];// 这个用不上是因为使用OutputSurface代替了
 				if ((videoDecoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
 					if (VERBOSE)
 						Log.d(TAG, "video decoder: codec config buffer");
@@ -635,8 +599,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					break;
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "video decoder: returned buffer for time "
-						+ videoDecoderOutputBufferInfo.presentationTimeUs);
+					Log.d(TAG, "video decoder: returned buffer for time " + videoDecoderOutputBufferInfo.presentationTimeUs);
 				}
 				boolean render = videoDecoderOutputBufferInfo.size != 0;
 				videoDecoder.releaseOutputBuffer(decoderOutputBufferIndex, render);
@@ -644,36 +607,29 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					if (VERBOSE)
 						Log.d(TAG, "output surface: await new image");
 					outputSurface.awaitNewImage();
-					// Edit the frame and send it to the encoder.
 					if (VERBOSE)
 						Log.d(TAG, "output surface: draw image");
-					outputSurface.drawImage();
-					inputSurface.setPresentationTime(
-						videoDecoderOutputBufferInfo.presentationTimeUs * 1000);
+					outputSurface.drawImage();// 把数据从SurfaceTexture画到当前EGLSurface
+					inputSurface.setPresentationTime(videoDecoderOutputBufferInfo.presentationTimeUs * 1000);
 					if (VERBOSE)
 						Log.d(TAG, "input surface: swap buffers");
-					inputSurface.swapBuffers();
+					inputSurface.swapBuffers();// 调用EGLSurface数据
 					if (VERBOSE)
 						Log.d(TAG, "video encoder: notified of new frame");
 				}
-				if ((videoDecoderOutputBufferInfo.flags
-					& MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+				if ((videoDecoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 					if (VERBOSE)
 						Log.d(TAG, "video decoder: EOS");
 					videoDecoderDone = true;
 					videoEncoder.signalEndOfInputStream();
 				}
 				videoDecodedFrameCount++;
-				// We extracted a pending frame, let's try something else next.
 				break;
 			}
 
-			// Poll output frames from the audio decoder.
-			// Do not poll if we already have a pending buffer to feed to the encoder.
-			while (mCopyAudio && !audioDecoderDone && pendingAudioDecoderOutputBufferIndex == -1
-				&& (encoderOutputAudioFormat == null || muxing)) {
-				int decoderOutputBufferIndex = audioDecoder.dequeueOutputBuffer(
-					audioDecoderOutputBufferInfo, TIMEOUT_USEC);
+			// 从音频decoder中拉取帧，如果还有待处理的buffer就阻塞
+			while (mCopyAudio && !audioDecoderDone && pendingAudioDecoderOutputBufferIndex == -1 && (encoderOutputAudioFormat == null || muxing)) {
+				int decoderOutputBufferIndex = audioDecoder.dequeueOutputBuffer(audioDecoderOutputBufferInfo, TIMEOUT_USEC);
 				if (decoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
 						Log.d(TAG, "no audio decoder output buffer");
@@ -688,18 +644,15 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				if (decoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 					decoderOutputAudioFormat = audioDecoder.getOutputFormat();
 					if (VERBOSE) {
-						Log.d(TAG, "audio decoder: output format changed: "
-							+ decoderOutputAudioFormat);
+						Log.d(TAG, "audio decoder: output format changed: " + decoderOutputAudioFormat);
 					}
 					break;
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "audio decoder: returned output buffer: "
-						+ decoderOutputBufferIndex);
+					Log.d(TAG, "audio decoder: returned output buffer: " + decoderOutputBufferIndex);
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "audio decoder: returned buffer of size "
-						+ audioDecoderOutputBufferInfo.size);
+					Log.d(TAG, "audio decoder: returned buffer of size " + audioDecoderOutputBufferInfo.size);
 				}
 				ByteBuffer decoderOutputBuffer = audioDecoderOutputBuffers[decoderOutputBufferIndex];
 				if ((audioDecoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
@@ -709,24 +662,20 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					break;
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "audio decoder: returned buffer for time "
-						+ audioDecoderOutputBufferInfo.presentationTimeUs);
+					Log.d(TAG, "audio decoder: returned buffer for time " + audioDecoderOutputBufferInfo.presentationTimeUs);
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "audio decoder: output buffer is now pending: "
-						+ pendingAudioDecoderOutputBufferIndex);
+					Log.d(TAG, "audio decoder: output buffer is now pending: " + pendingAudioDecoderOutputBufferIndex);
 				}
 				pendingAudioDecoderOutputBufferIndex = decoderOutputBufferIndex;
 				audioDecodedFrameCount++;
-				// We extracted a pending frame, let's try something else next.
 				break;
 			}
 
-			// Feed the pending decoded audio buffer to the audio encoder.
+			// 将待处理的已解码音频数据喂给音频编码器
 			while (mCopyAudio && pendingAudioDecoderOutputBufferIndex != -1) {
 				if (VERBOSE) {
-					Log.d(TAG, "audio decoder: attempting to process pending buffer: "
-						+ pendingAudioDecoderOutputBufferIndex);
+					Log.d(TAG, "audio decoder: attempting to process pending buffer: " + pendingAudioDecoderOutputBufferIndex);
 				}
 				int encoderInputBufferIndex = audioEncoder.dequeueInputBuffer(TIMEOUT_USEC);
 				if (encoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
@@ -741,16 +690,14 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				int size = audioDecoderOutputBufferInfo.size;
 				long presentationTime = audioDecoderOutputBufferInfo.presentationTimeUs;
 				if (VERBOSE) {
-					Log.d(TAG, "audio decoder: processing pending buffer: "
-						+ pendingAudioDecoderOutputBufferIndex);
+					Log.d(TAG, "audio decoder: processing pending buffer: " + pendingAudioDecoderOutputBufferIndex);
 				}
 				if (VERBOSE) {
 					Log.d(TAG, "audio decoder: pending buffer of size " + size);
 					Log.d(TAG, "audio decoder: pending buffer for time " + presentationTime);
 				}
 				if (size >= 0) {
-					ByteBuffer decoderOutputBuffer = audioDecoderOutputBuffers[pendingAudioDecoderOutputBufferIndex]
-						.duplicate();
+					ByteBuffer decoderOutputBuffer = audioDecoderOutputBuffers[pendingAudioDecoderOutputBufferIndex].duplicate();
 					decoderOutputBuffer.position(audioDecoderOutputBufferInfo.offset);
 					decoderOutputBuffer.limit(audioDecoderOutputBufferInfo.offset + size);
 					encoderInputBuffer.position(0);
@@ -771,15 +718,12 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 						Log.d(TAG, "audio decoder: EOS");
 					audioDecoderDone = true;
 				}
-				// We enqueued a pending frame, let's try something else next.
 				break;
 			}
 
-			// Poll frames from the video encoder and send them to the muxer.
-			while (mCopyVideo && !videoEncoderDone
-				&& (encoderOutputVideoFormat == null || muxing)) {
-				int encoderOutputBufferIndex = videoEncoder.dequeueOutputBuffer(
-					videoEncoderOutputBufferInfo, TIMEOUT_USEC);
+			// 从视频编码器中获取帧并发送给Muxer
+			while (mCopyVideo && !videoEncoderDone && (encoderOutputVideoFormat == null || muxing)) {
+				int encoderOutputBufferIndex = videoEncoder.dequeueOutputBuffer(videoEncoderOutputBufferInfo, TIMEOUT_USEC);
 				if (encoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
 						Log.d(TAG, "no video encoder output buffer");
@@ -802,26 +746,22 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				}
 				assertTrue("should have added track before processing output", muxing);
 				if (VERBOSE) {
-					Log.d(TAG, "video encoder: returned output buffer: "
-						+ encoderOutputBufferIndex);
-					Log.d(TAG, "video encoder: returned buffer of size "
-						+ videoEncoderOutputBufferInfo.size);
+					Log.d(TAG, "video encoder: returned output buffer: " + encoderOutputBufferIndex);
+					Log.d(TAG, "video encoder: returned buffer of size " + videoEncoderOutputBufferInfo.size);
 				}
 				ByteBuffer encoderOutputBuffer = videoEncoderOutputBuffers[encoderOutputBufferIndex];
 				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
 					if (VERBOSE)
 						Log.d(TAG, "video encoder: codec config buffer");
-					// Simply ignore codec config buffers.
+					// 对于codec的配置buffer，简单的忽略。
 					videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
 					break;
 				}
 				if (VERBOSE) {
-					Log.d(TAG, "video encoder: returned buffer for time "
-						+ videoEncoderOutputBufferInfo.presentationTimeUs);
+					Log.d(TAG, "video encoder: returned buffer for time " + videoEncoderOutputBufferInfo.presentationTimeUs);
 				}
 				if (videoEncoderOutputBufferInfo.size != 0) {
-					muxer.writeSampleData(
-						outputVideoTrack, encoderOutputBuffer, videoEncoderOutputBufferInfo);
+					muxer.writeSampleData(outputVideoTrack, encoderOutputBuffer, videoEncoderOutputBufferInfo);
 				}
 				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 					if (VERBOSE)
@@ -830,15 +770,12 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				}
 				videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
 				videoEncodedFrameCount++;
-				// We enqueued an encoded frame, let's try something else next.
 				break;
 			}
 
-			// Poll frames from the audio encoder and send them to the muxer.
-			while (mCopyAudio && !audioEncoderDone
-				&& (encoderOutputAudioFormat == null || muxing)) {
-				int encoderOutputBufferIndex = audioEncoder.dequeueOutputBuffer(
-					audioEncoderOutputBufferInfo, TIMEOUT_USEC);
+			// 从音频编码器中获取帧并发送给Muxer
+			while (mCopyAudio && !audioEncoderDone && (encoderOutputAudioFormat == null || muxing)) {
+				int encoderOutputBufferIndex = audioEncoder.dequeueOutputBuffer(audioEncoderOutputBufferInfo, TIMEOUT_USEC);
 				if (encoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
 						Log.d(TAG, "no audio encoder output buffer");
@@ -862,16 +799,14 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				}
 				assertTrue("should have added track before processing output", muxing);
 				if (VERBOSE) {
-					Log.d(TAG, "audio encoder: returned output buffer: "
-						+ encoderOutputBufferIndex);
-					Log.d(TAG, "audio encoder: returned buffer of size "
-						+ audioEncoderOutputBufferInfo.size);
+					Log.d(TAG, "audio encoder: returned output buffer: " + encoderOutputBufferIndex);
+					Log.d(TAG, "audio encoder: returned buffer of size " + audioEncoderOutputBufferInfo.size);
 				}
 				ByteBuffer encoderOutputBuffer = audioEncoderOutputBuffers[encoderOutputBufferIndex];
 				if ((audioEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
 					if (VERBOSE)
 						Log.d(TAG, "audio encoder: codec config buffer");
-					// Simply ignore codec config buffers.
+					// 对于codec的配置buffer，简单的忽略。
 					audioEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
 					break;
 				}
@@ -880,8 +815,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 						+ audioEncoderOutputBufferInfo.presentationTimeUs);
 				}
 				if (audioEncoderOutputBufferInfo.size != 0) {
-					muxer.writeSampleData(
-						outputAudioTrack, encoderOutputBuffer, audioEncoderOutputBufferInfo);
+					muxer.writeSampleData(outputAudioTrack, encoderOutputBuffer, audioEncoderOutputBufferInfo);
 				}
 				if ((audioEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 					if (VERBOSE)
@@ -890,13 +824,10 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				}
 				audioEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
 				audioEncodedFrameCount++;
-				// We enqueued an encoded frame, let's try something else next.
 				break;
 			}
 
-			if (!muxing
-				&& (!mCopyAudio || encoderOutputAudioFormat != null)
-				&& (!mCopyVideo || encoderOutputVideoFormat != null)) {
+			if (!muxing && (!mCopyAudio || encoderOutputAudioFormat != null) && (!mCopyVideo || encoderOutputVideoFormat != null)) {
 				if (mCopyVideo) {
 					Log.d(TAG, "muxer: adding video track.");
 					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
@@ -913,15 +844,12 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 
 		// Basic sanity checks.
 		if (mCopyVideo) {
-			assertEquals("encoded and decoded video frame counts should match",
-				videoDecodedFrameCount, videoEncodedFrameCount);
-			assertTrue("decoded frame count should be less than extracted frame count",
-				videoDecodedFrameCount <= videoExtractedFrameCount);
+			assertEquals("encoded and decoded video frame counts should match", videoDecodedFrameCount, videoEncodedFrameCount);
+			assertTrue("decoded frame count should be less than extracted frame count", videoDecodedFrameCount <= videoExtractedFrameCount);
 		}
 		if (mCopyAudio) {
 			assertEquals("no frame should be pending", -1, pendingAudioDecoderOutputBufferIndex);
 		}
-
 		// TODO: Check the generated output file.
 	}
 

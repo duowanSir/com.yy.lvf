@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="net.ypresto.androidtranscoder.example"
+    package="com.yy.lvf.transcoder"
     android:versionCode="100"
     android:versionName="1.0.0" >
 
@@ -16,7 +16,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".TranscoderActivity"
+            android:name="com.yy.lvf.transcoder.TranscoderActivity"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,7 +27,7 @@
 
         <provider
             android:name="android.support.v4.content.FileProvider"
-            android:authorities="net.ypresto.androidtranscoder.example.fileprovider"
+            android:authorities="com.yy.lvf.transcoder.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true" >
             <meta-data

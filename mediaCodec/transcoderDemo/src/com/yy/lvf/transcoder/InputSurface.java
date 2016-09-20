@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.ypresto.androidtranscoder.example;
+package com.yy.lvf.transcoder;
 
 import android.opengl.EGL14;
 import android.opengl.EGLExt;

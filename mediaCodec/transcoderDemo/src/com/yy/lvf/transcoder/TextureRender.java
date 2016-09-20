@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.ypresto.androidtranscoder.example;
+package com.yy.lvf.transcoder;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
