@@ -17,6 +17,7 @@ package net.ypresto.androidtranscoder.utils;
 
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import android.media.MediaMetadataRetriever;
 
 public class MediaExtractorUtils {
 
@@ -34,6 +35,21 @@ public class MediaExtractorUtils {
         public int mAudioTrackIndex;
         public String mAudioTrackMime;
         public MediaFormat mAudioTrackFormat;
+    }
+    
+    public static class MandatoryKv {
+	public String mVideoMime;
+	public int mVideoBitRate;
+	public int mWidth;
+	public int mHeight;
+	public int mColorFormat;
+	public int mFrameRate;
+	public int mIFrameInterval;
+	
+	public String mAudioMime;
+	public int mAudioBitRate;
+	public int mChannelCount;
+	public int mSampleRate;
     }
 
     public static TrackResult getFirstVideoAndAudioTrack(MediaExtractor extractor) {
@@ -59,5 +75,10 @@ public class MediaExtractorUtils {
             throw new IllegalArgumentException("extractor does not contain video and/or audio tracks.");
         }
         return trackResult;
+    }
+    
+    public static MandatoryKv getInputMandatoryKv(MediaExtractor extractor, MediaMetadataRetriever retriever) {
+	MandatoryKv kv = null;
+	return kv;
     }
 }
