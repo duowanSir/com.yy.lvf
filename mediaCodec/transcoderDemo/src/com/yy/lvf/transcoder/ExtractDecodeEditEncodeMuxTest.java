@@ -14,7 +14,6 @@ import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.os.Environment;
 import android.test.AndroidTestCase;
 import android.util.Log;
 import android.view.Surface;
@@ -28,16 +27,26 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	private static final int TIMEOUT_USEC = 10000;
 
 	private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // 视频输出mime，可指定，含义(H.264 Advanced Video Coding)
-	private static final int OUTPUT_VIDEO_BIT_RATE = 2000000; // 2Mbps
+	private static final int OUTPUT_VIDEO_BIT_RATE = 100000; // 100Kbps
 	private static final int OUTPUT_VIDEO_FRAME_RATE = 15; // 15fps
 	private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // I帧间隔
 	private static final int OUTPUT_VIDEO_COLOR_FORMAT = MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
+//	private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // 视频输出mime，可指定，含义(H.264 Advanced Video Coding)
+//	private static final int OUTPUT_VIDEO_BIT_RATE = 2000000; // 2Mbps
+//	private static final int OUTPUT_VIDEO_FRAME_RATE = 15; // 15fps
+//	private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // I帧间隔
+//	private static final int OUTPUT_VIDEO_COLOR_FORMAT = MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
 
 	private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm";
 	private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2;
 	private static final int OUTPUT_AUDIO_BIT_RATE = 128 * 1024;
 	private static final int OUTPUT_AUDIO_AAC_PROFILE = MediaCodecInfo.CodecProfileLevel.AACObjectHE;
-	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 44100; // 必须和输入流一致
+	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 48000; // 必须和输入流一致
+//	private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm";
+//	private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2;
+//	private static final int OUTPUT_AUDIO_BIT_RATE = 128 * 1024;
+//	private static final int OUTPUT_AUDIO_AAC_PROFILE = MediaCodecInfo.CodecProfileLevel.AACObjectHE;
+//	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 44100; // 必须和输入流一致
 
 	/**
 	 * Used for editing the frames.
@@ -89,9 +98,9 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	}
 
 	public void testExtractDecodeEditEncodeMuxAudioVideo(File input, File output) throws Throwable {
-		setSize(1280, 720);
+		setSize(480, 480);
 		setSource(input, output);
-		setCopyAudio();
+//		setCopyAudio();
 		setCopyVideo();
 		TestWrapper.runTest(this);
 	}
@@ -156,7 +165,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 			return;
 		}
 		if (VERBOSE)
-			Log.d(TAG, "videoCodecInfo = " + videoCodecInfo);
+			Log.d(TAG, "videoCodecInfo: " + videoCodecInfo);
 
 		MediaCodecInfo audioCodecInfo = selectCodec(OUTPUT_AUDIO_MIME_TYPE);
 		if (audioCodecInfo == null) {
@@ -164,7 +173,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 			return;
 		}
 		if (VERBOSE)
-			Log.d(TAG, "audioCodecInfo" + audioCodecInfo);
+			Log.d(TAG, "audioCodecInfo: " + audioCodecInfo);
 		// 视频编码强制属性（MediaFormat有说明）
 		outputVideoFormat = MediaFormat.createVideoFormat(OUTPUT_VIDEO_MIME_TYPE, mWidth, mHeight);
 		outputVideoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, OUTPUT_VIDEO_COLOR_FORMAT);
@@ -172,13 +181,13 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 		outputVideoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, OUTPUT_VIDEO_FRAME_RATE);
 		outputVideoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, OUTPUT_VIDEO_IFRAME_INTERVAL);
 		if (VERBOSE)
-			Log.d(TAG, "outputVideoFormat = " + outputVideoFormat);
+			Log.d(TAG, "outputVideoFormat: " + outputVideoFormat);
 		// 音频编码强制属性（MediaFormat有说明）
 		outputAudioFormat = MediaFormat.createAudioFormat(OUTPUT_AUDIO_MIME_TYPE, OUTPUT_AUDIO_SAMPLE_RATE_HZ, OUTPUT_AUDIO_CHANNEL_COUNT);
 		outputAudioFormat.setInteger(MediaFormat.KEY_BIT_RATE, OUTPUT_AUDIO_BIT_RATE);
 		outputAudioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, OUTPUT_AUDIO_AAC_PROFILE);
 		if (VERBOSE)
-			Log.d(TAG, "outputAudioFormat = " + outputAudioFormat);
+			Log.d(TAG, "outputAudioFormat: " + outputAudioFormat);
 		// 以上，设置输出属性，需要做足够的兼容性设置，包括mime，分辨率等等。强制属性设置失败会导致MediaCodec调用configure()方法抛unhelpful异常。
 		// 当兼容性出现问题时，就应当切换到软编解码方案。
 
@@ -199,6 +208,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				int videoInputTrack = getAndSelectVideoTrackIndex(videoExtractor);
 				assertTrue("missing video track in test video", videoInputTrack != -1);
 				MediaFormat inputFormat = videoExtractor.getTrackFormat(videoInputTrack);
+				Log.d(TAG, "videoInputFormat： " + inputFormat);
 				// 编码器
 				AtomicReference<Surface> inputSurfaceReference = new AtomicReference<Surface>();
 				videoEncoder = createVideoEncoder(videoCodecInfo, outputVideoFormat, inputSurfaceReference);
@@ -215,7 +225,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				int audioInputTrack = getAndSelectAudioTrackIndex(audioExtractor);
 				assertTrue("missing audio track in test video", audioInputTrack != -1);
 				MediaFormat inputFormat = audioExtractor.getTrackFormat(audioInputTrack);
-
+				Log.d(TAG, "audioInputFormat： " + inputFormat);
 				// 编码器
 				audioEncoder = createAudioEncoder(audioCodecInfo, outputAudioFormat);
 				// 解码器
@@ -230,11 +240,6 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 		} finally {
 			if (VERBOSE)
 				Log.d(TAG, "releasing extractor, decoder, encoder, and muxer");
-			// Try to release everything we acquired, even if one of the releases fails, in which
-			// case we save the first exception we got and re-throw at the end (unless something
-			// other exception has already been thrown). This guarantees the first exception thrown
-			// is reported as the cause of the error, everything is (attempted) to be released, and
-			// all other exceptions appear in the logs.
 			try {
 				if (videoExtractor != null) {
 					videoExtractor.release();
@@ -389,8 +394,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	private int getAndSelectVideoTrackIndex(MediaExtractor extractor) {
 		for (int index = 0; index < extractor.getTrackCount(); ++index) {
 			if (VERBOSE) {
-				Log.d(TAG, "format for track " + index + " is "
-					+ getMimeTypeFor(extractor.getTrackFormat(index)));
+				Log.d(TAG, "format for track " + index + " is " + getMimeTypeFor(extractor.getTrackFormat(index)));
 			}
 			if (isVideoFormat(extractor.getTrackFormat(index))) {
 				extractor.selectTrack(index);
@@ -403,8 +407,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	private int getAndSelectAudioTrackIndex(MediaExtractor extractor) {
 		for (int index = 0; index < extractor.getTrackCount(); ++index) {
 			if (VERBOSE) {
-				Log.d(TAG, "format for track " + index + " is "
-					+ getMimeTypeFor(extractor.getTrackFormat(index)));
+				Log.d(TAG, "format for track " + index + " is " + getMimeTypeFor(extractor.getTrackFormat(index)));
 			}
 			if (isAudioFormat(extractor.getTrackFormat(index))) {
 				extractor.selectTrack(index);

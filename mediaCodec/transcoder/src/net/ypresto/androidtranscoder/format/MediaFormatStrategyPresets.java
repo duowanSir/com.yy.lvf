@@ -15,6 +15,8 @@
  */
 package net.ypresto.androidtranscoder.format;
 
+import java.io.FileDescriptor;
+
 public class MediaFormatStrategyPresets {
     public static final int AUDIO_BITRATE_AS_IS = -1;
     public static final int AUDIO_CHANNELS_AS_IS = -1;
@@ -71,7 +73,7 @@ public class MediaFormatStrategyPresets {
     private MediaFormatStrategyPresets() {
     }
     
-    public static MediaFormatStrategy createDecreaseBitrateFormatStrategy() {
-    	return new DecreaseBitrateFormatStrategy();
+    public static MediaFormatStrategy createDecreaseBitrateFormatStrategy(FileDescriptor input, String mime) {
+    	return new DecreaseBitrateFormatStrategy(input, mime);
     }
 }
