@@ -14,12 +14,15 @@ import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.test.AndroidTestCase;
 import android.util.Log;
 import android.view.Surface;
+import net.ypresto.androidtranscoder.engine.InputSurface;
+import net.ypresto.androidtranscoder.engine.OutputSurface;
+import net.ypresto.androidtranscoder.format.CompressFileSizeFormatStrategy;
+import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 @TargetApi(18)
-public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
+public class ExtractDecodeEditEncodeMuxTest {
 
 	private static final String TAG = ExtractDecodeEditEncodeMuxTest.class.getSimpleName();
 	private static final boolean VERBOSE = true;
@@ -27,26 +30,26 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	private static final int TIMEOUT_USEC = 10000;
 
 	private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // 视频输出mime，可指定，含义(H.264 Advanced Video Coding)
-	private static final int OUTPUT_VIDEO_BIT_RATE = 100000; // 100Kbps
+	private static final int OUTPUT_VIDEO_BIT_RATE = 1000000;
 	private static final int OUTPUT_VIDEO_FRAME_RATE = 15; // 15fps
-	private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // I帧间隔
+	private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 30; // I帧间隔
 	private static final int OUTPUT_VIDEO_COLOR_FORMAT = MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
-//	private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // 视频输出mime，可指定，含义(H.264 Advanced Video Coding)
-//	private static final int OUTPUT_VIDEO_BIT_RATE = 2000000; // 2Mbps
-//	private static final int OUTPUT_VIDEO_FRAME_RATE = 15; // 15fps
-//	private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // I帧间隔
-//	private static final int OUTPUT_VIDEO_COLOR_FORMAT = MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
+	// private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // 视频输出mime，可指定，含义(H.264 Advanced Video Coding)
+	// private static final int OUTPUT_VIDEO_BIT_RATE = 2000000; // 2Mbps
+	// private static final int OUTPUT_VIDEO_FRAME_RATE = 15; // 15fps
+	// private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // I帧间隔
+	// private static final int OUTPUT_VIDEO_COLOR_FORMAT = MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
 
 	private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm";
 	private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2;
-	private static final int OUTPUT_AUDIO_BIT_RATE = 128 * 1024;
+	private static final int OUTPUT_AUDIO_BIT_RATE = 128000;
 	private static final int OUTPUT_AUDIO_AAC_PROFILE = MediaCodecInfo.CodecProfileLevel.AACObjectHE;
 	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 48000; // 必须和输入流一致
-//	private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm";
-//	private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2;
-//	private static final int OUTPUT_AUDIO_BIT_RATE = 128 * 1024;
-//	private static final int OUTPUT_AUDIO_AAC_PROFILE = MediaCodecInfo.CodecProfileLevel.AACObjectHE;
-//	private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 44100; // 必须和输入流一致
+	// private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm";
+	// private static final int OUTPUT_AUDIO_CHANNEL_COUNT = 2;
+	// private static final int OUTPUT_AUDIO_BIT_RATE = 128 * 1024;
+	// private static final int OUTPUT_AUDIO_AAC_PROFILE = MediaCodecInfo.CodecProfileLevel.AACObjectHE;
+	// private static final int OUTPUT_AUDIO_SAMPLE_RATE_HZ = 44100; // 必须和输入流一致
 
 	/**
 	 * Used for editing the frames.
@@ -61,8 +64,8 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 		"  gl_FragColor = texture2D(sTexture, vTextureCoord).rbga;\n" +
 		"}\n";
 
-	private boolean mCopyVideo;
-	private boolean mCopyAudio;
+	private boolean mCopyVideo = false;
+	private boolean mCopyAudio = false;
 	private int mWidth = -1;// 输出
 	private int mHeight = -1;// 输出
 
@@ -100,7 +103,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	public void testExtractDecodeEditEncodeMuxAudioVideo(File input, File output) throws Throwable {
 		setSize(480, 480);
 		setSource(input, output);
-//		setCopyAudio();
+		// setCopyAudio();
 		setCopyVideo();
 		TestWrapper.runTest(this);
 	}
@@ -159,37 +162,21 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 
 		MediaFormat outputVideoFormat = null;
 		MediaFormat outputAudioFormat = null;
-		MediaCodecInfo videoCodecInfo = selectCodec(OUTPUT_VIDEO_MIME_TYPE);
-		if (videoCodecInfo == null) {
-			Log.e(TAG, "当前设备不支持" + OUTPUT_VIDEO_MIME_TYPE);
-			return;
-		}
-		if (VERBOSE)
-			Log.d(TAG, "videoCodecInfo: " + videoCodecInfo);
-
-		MediaCodecInfo audioCodecInfo = selectCodec(OUTPUT_AUDIO_MIME_TYPE);
-		if (audioCodecInfo == null) {
-			Log.e(TAG, "当前设备不支持" + OUTPUT_AUDIO_MIME_TYPE);
-			return;
-		}
-		if (VERBOSE)
-			Log.d(TAG, "audioCodecInfo: " + audioCodecInfo);
-		// 视频编码强制属性（MediaFormat有说明）
-		outputVideoFormat = MediaFormat.createVideoFormat(OUTPUT_VIDEO_MIME_TYPE, mWidth, mHeight);
-		outputVideoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, OUTPUT_VIDEO_COLOR_FORMAT);
-		outputVideoFormat.setInteger(MediaFormat.KEY_BIT_RATE, OUTPUT_VIDEO_BIT_RATE);
-		outputVideoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, OUTPUT_VIDEO_FRAME_RATE);
-		outputVideoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, OUTPUT_VIDEO_IFRAME_INTERVAL);
-		if (VERBOSE)
-			Log.d(TAG, "outputVideoFormat: " + outputVideoFormat);
-		// 音频编码强制属性（MediaFormat有说明）
-		outputAudioFormat = MediaFormat.createAudioFormat(OUTPUT_AUDIO_MIME_TYPE, OUTPUT_AUDIO_SAMPLE_RATE_HZ, OUTPUT_AUDIO_CHANNEL_COUNT);
-		outputAudioFormat.setInteger(MediaFormat.KEY_BIT_RATE, OUTPUT_AUDIO_BIT_RATE);
-		outputAudioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, OUTPUT_AUDIO_AAC_PROFILE);
-		if (VERBOSE)
-			Log.d(TAG, "outputAudioFormat: " + outputAudioFormat);
-		// 以上，设置输出属性，需要做足够的兼容性设置，包括mime，分辨率等等。强制属性设置失败会导致MediaCodec调用configure()方法抛unhelpful异常。
-		// 当兼容性出现问题时，就应当切换到软编解码方案。
+//		MediaCodecInfo videoCodecInfo = selectCodec(OUTPUT_VIDEO_MIME_TYPE);
+//		if (videoCodecInfo == null) {
+//			Log.e(TAG, "当前设备不支持" + OUTPUT_VIDEO_MIME_TYPE);
+//			return;
+//		}
+//		if (VERBOSE)
+//			Log.d(TAG, "videoCodecInfo: " + videoCodecInfo);
+//
+//		MediaCodecInfo audioCodecInfo = selectCodec(OUTPUT_AUDIO_MIME_TYPE);
+//		if (audioCodecInfo == null) {
+//			Log.e(TAG, "当前设备不支持" + OUTPUT_AUDIO_MIME_TYPE);
+//			return;
+//		}
+//		if (VERBOSE)
+//			Log.d(TAG, "audioCodecInfo: " + audioCodecInfo);
 
 		MediaExtractor videoExtractor = null;
 		MediaExtractor audioExtractor = null;
@@ -201,33 +188,35 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 		MediaMuxer muxer = null;
 
 		InputSurface inputSurface = null;
-
+		CompressFileSizeFormatStrategy strategy = (CompressFileSizeFormatStrategy) MediaFormatStrategyPresets.createDecreaseBitrateFormatStrategy(600000, 128000, 2);
 		try {
 			if (mCopyVideo) {
 				videoExtractor = createExtractor(mInputF);
 				int videoInputTrack = getAndSelectVideoTrackIndex(videoExtractor);
-				assertTrue("missing video track in test video", videoInputTrack != -1);
 				MediaFormat inputFormat = videoExtractor.getTrackFormat(videoInputTrack);
-				Log.d(TAG, "videoInputFormat： " + inputFormat);
+				strategy.setFrameRate(15);
+				strategy.setIFrameInterval(5);
+				outputVideoFormat = strategy.createVideoOutputFormat(inputFormat);
 				// 编码器
 				AtomicReference<Surface> inputSurfaceReference = new AtomicReference<Surface>();
-				videoEncoder = createVideoEncoder(videoCodecInfo, outputVideoFormat, inputSurfaceReference);
+				videoEncoder = createVideoEncoder(outputVideoFormat, inputSurfaceReference);
 				inputSurface = new InputSurface(inputSurfaceReference.get());
 				inputSurface.makeCurrent();
 				// 解码器
 				outputSurface = new OutputSurface();
-				outputSurface.changeFragmentShader(FRAGMENT_SHADER);
 				videoDecoder = createVideoDecoder(inputFormat, outputSurface.getSurface());
 			}
 
 			if (mCopyAudio) {
 				audioExtractor = createExtractor(mInputF);
 				int audioInputTrack = getAndSelectAudioTrackIndex(audioExtractor);
-				assertTrue("missing audio track in test video", audioInputTrack != -1);
+//				assertTrue("missing audio track in test video", audioInputTrack != -1);
 				MediaFormat inputFormat = audioExtractor.getTrackFormat(audioInputTrack);
-				Log.d(TAG, "audioInputFormat： " + inputFormat);
+				Log.d(TAG, "inputAudioFormat： " + inputFormat);
+				outputAudioFormat = strategy.createAudioOutputFormat(inputFormat);
+				Log.d(TAG, "outputAudioFormat： " + outputAudioFormat);
 				// 编码器
-				audioEncoder = createAudioEncoder(audioCodecInfo, outputAudioFormat);
+				audioEncoder = createAudioEncoder(outputAudioFormat);
 				// 解码器
 				audioDecoder = createAudioDecoder(inputFormat);
 			}
@@ -359,14 +348,14 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	}
 
 	private MediaCodec createVideoDecoder(MediaFormat inputFormat, Surface surface) throws IOException {
-		MediaCodec decoder = MediaCodec.createDecoderByType(getMimeTypeFor(inputFormat));
+		MediaCodec decoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME));
 		decoder.configure(inputFormat, surface, null, 0);
 		decoder.start();
 		return decoder;
 	}
 
-	private MediaCodec createVideoEncoder(MediaCodecInfo codecInfo, MediaFormat format, AtomicReference<Surface> surfaceReference) throws IOException {
-		MediaCodec encoder = MediaCodec.createByCodecName(codecInfo.getName());
+	private MediaCodec createVideoEncoder(MediaFormat format, AtomicReference<Surface> surfaceReference) throws IOException {
+		MediaCodec encoder = MediaCodec.createEncoderByType(format.getString(MediaFormat.KEY_MIME));
 		encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 		surfaceReference.set(encoder.createInputSurface());// start之前调用
 		encoder.start();
@@ -380,8 +369,8 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 		return decoder;
 	}
 
-	private MediaCodec createAudioEncoder(MediaCodecInfo codecInfo, MediaFormat format) throws IOException {
-		MediaCodec encoder = MediaCodec.createByCodecName(codecInfo.getName());
+	private MediaCodec createAudioEncoder(MediaFormat format) throws IOException {
+		MediaCodec encoder = MediaCodec.createEncoderByType(getMimeTypeFor(format));
 		encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 		encoder.start();
 		return encoder;
@@ -421,13 +410,13 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 	private void doExtractDecodeEditEncodeMux(MediaExtractor videoExtractor, MediaExtractor audioExtractor, MediaCodec videoDecoder, MediaCodec videoEncoder, MediaCodec audioDecoder, MediaCodec audioEncoder, MediaMuxer muxer, InputSurface inputSurface, OutputSurface outputSurface) {
 		// 根据MediaCodec工作的数据流图，每个MediaCodec基本对应两组
 		ByteBuffer[] videoDecoderInputBuffers = null;
-		ByteBuffer[] videoDecoderOutputBuffers = null;
+//		ByteBuffer[] videoDecoderOutputBuffers = null;
 		ByteBuffer[] videoEncoderOutputBuffers = null;
 		MediaCodec.BufferInfo videoDecoderOutputBufferInfo = null;
 		MediaCodec.BufferInfo videoEncoderOutputBufferInfo = null;
 		if (mCopyVideo) {
 			videoDecoderInputBuffers = videoDecoder.getInputBuffers();
-			videoDecoderOutputBuffers = videoDecoder.getOutputBuffers();
+//			videoDecoderOutputBuffers = videoDecoder.getOutputBuffers();
 			videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
 			videoDecoderOutputBufferInfo = new MediaCodec.BufferInfo();
 			videoEncoderOutputBufferInfo = new MediaCodec.BufferInfo();
@@ -508,8 +497,9 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 
 					muxing, outputVideoTrack, outputAudioTrack));
 			}
-
-			while (mCopyVideo && !videoExtractorDone && (encoderOutputVideoFormat == null || muxing)) {// 视频解码器读取一帧的数据
+			
+			// 提取 ---> 解码（输入）
+			while (mCopyVideo && !videoExtractorDone && (encoderOutputVideoFormat == null || muxing)) {
 				int decoderInputBufferIndex = videoDecoder.dequeueInputBuffer(TIMEOUT_USEC);// 请求输入buffer
 				if (decoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
@@ -520,7 +510,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					Log.d(TAG, "video decoder: returned input buffer: " + decoderInputBufferIndex);
 				}
 				ByteBuffer decoderInputBuffer = videoDecoderInputBuffers[decoderInputBufferIndex];
-				int size = videoExtractor.readSampleData(decoderInputBuffer, 0);// 写输入buffer
+				int size = videoExtractor.readSampleData(decoderInputBuffer, 0);
 				long presentationTime = videoExtractor.getSampleTime();
 				if (VERBOSE) {
 					Log.d(TAG, "video extractor: returned buffer of size " + size);
@@ -528,11 +518,14 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				}
 				if (size >= 0) {
 					videoDecoder.queueInputBuffer(decoderInputBufferIndex, 0, size, presentationTime, videoExtractor.getSampleFlags());
+					videoExtractorDone = !videoExtractor.advance();// 当前采样是否提取完
+				} else {
+					videoExtractorDone = true;
 				}
-				videoExtractorDone = !videoExtractor.advance();// 当前采样是否提取完
 				if (videoExtractorDone) {
-					if (VERBOSE)
-						Log.d(TAG, "video extractor: EOS");// EOS = end of stream
+					if (VERBOSE) {
+						Log.d(TAG, "video extractor: EOS");
+					}
 					videoDecoder.queueInputBuffer(decoderInputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
 				}
 				videoExtractedFrameCount++;
@@ -569,7 +562,7 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				break;
 			}
 
-			// 从视频decoder读取数据并喂给视频encoder
+			// 解码（输出）---> 编码（输入）
 			while (mCopyVideo && !videoDecoderDone && (encoderOutputVideoFormat == null || muxing)) {
 				int decoderOutputBufferIndex = videoDecoder.dequeueOutputBuffer(videoDecoderOutputBufferInfo, TIMEOUT_USEC);
 				if (decoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
@@ -580,7 +573,6 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				if (decoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
 					if (VERBOSE)
 						Log.d(TAG, "video decoder: output buffers changed");
-					videoDecoderOutputBuffers = videoDecoder.getOutputBuffers();
 					break;
 				}
 				if (decoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
@@ -593,18 +585,15 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				if (VERBOSE) {
 					Log.d(TAG, "video decoder: returned output buffer: " + decoderOutputBufferIndex);
 					Log.d(TAG, "video decoder: returned buffer of size " + videoDecoderOutputBufferInfo.size);
+					Log.d(TAG, "video decoder: returned buffer for time " + videoDecoderOutputBufferInfo.presentationTimeUs);
 				}
-				ByteBuffer decoderOutputBuffer = videoDecoderOutputBuffers[decoderOutputBufferIndex];// 这个用不上是因为使用OutputSurface代替了
+				boolean render = (videoDecoderOutputBufferInfo.size > 0);
 				if ((videoDecoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
 					if (VERBOSE)
 						Log.d(TAG, "video decoder: codec config buffer");
-					videoDecoder.releaseOutputBuffer(decoderOutputBufferIndex, false);
+					videoDecoder.releaseOutputBuffer(decoderOutputBufferIndex, render);
 					break;
 				}
-				if (VERBOSE) {
-					Log.d(TAG, "video decoder: returned buffer for time " + videoDecoderOutputBufferInfo.presentationTimeUs);
-				}
-				boolean render = videoDecoderOutputBufferInfo.size != 0;
 				videoDecoder.releaseOutputBuffer(decoderOutputBufferIndex, render);
 				if (render) {
 					if (VERBOSE)
@@ -724,57 +713,64 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				break;
 			}
 
-			// 从视频编码器中获取帧并发送给Muxer
-			while (mCopyVideo && !videoEncoderDone && (encoderOutputVideoFormat == null || muxing)) {
-				int encoderOutputBufferIndex = videoEncoder.dequeueOutputBuffer(videoEncoderOutputBufferInfo, TIMEOUT_USEC);
-				if (encoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-					if (VERBOSE)
-						Log.d(TAG, "no video encoder output buffer");
-					break;
-				}
-				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-					if (VERBOSE)
-						Log.d(TAG, "video encoder: output buffers changed");
-					videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
-					break;
-				}
-				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-					if (VERBOSE)
-						Log.d(TAG, "video encoder: output format changed");
-					if (outputVideoTrack >= 0) {
-						fail("video encoder changed its output format again?");
-					}
-					encoderOutputVideoFormat = videoEncoder.getOutputFormat();
-					break;
-				}
-				assertTrue("should have added track before processing output", muxing);
-				if (VERBOSE) {
-					Log.d(TAG, "video encoder: returned output buffer: " + encoderOutputBufferIndex);
-					Log.d(TAG, "video encoder: returned buffer of size " + videoEncoderOutputBufferInfo.size);
-				}
-				ByteBuffer encoderOutputBuffer = videoEncoderOutputBuffers[encoderOutputBufferIndex];
-				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-					if (VERBOSE)
-						Log.d(TAG, "video encoder: codec config buffer");
-					// 对于codec的配置buffer，简单的忽略。
-					videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
-					break;
-				}
-				if (VERBOSE) {
-					Log.d(TAG, "video encoder: returned buffer for time " + videoEncoderOutputBufferInfo.presentationTimeUs);
-				}
-				if (videoEncoderOutputBufferInfo.size != 0) {
-					muxer.writeSampleData(outputVideoTrack, encoderOutputBuffer, videoEncoderOutputBufferInfo);
-				}
-				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-					if (VERBOSE)
-						Log.d(TAG, "video encoder: EOS");
-					videoEncoderDone = true;
-				}
-				videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
-				videoEncodedFrameCount++;
-				break;
-			}
+			// 编码（输出）---> 封装
+//			while (mCopyVideo && !videoEncoderDone && (encoderOutputVideoFormat == null || muxing)) {
+//				int encoderOutputBufferIndex = videoEncoder.dequeueOutputBuffer(videoEncoderOutputBufferInfo, TIMEOUT_USEC);
+//				if (encoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
+//					if (VERBOSE)
+//						Log.d(TAG, "no video encoder output buffer");
+//					break;
+//				}
+//				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+//					if (VERBOSE)
+//						Log.d(TAG, "video encoder: output buffers changed");
+//					videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
+//					break;
+//				}
+//				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+//					if (VERBOSE)
+//						Log.d(TAG, "video encoder: output format changed");
+//					if (outputVideoTrack >= 0 || muxing) {
+//						throw new RuntimeException("format changed twice");
+//					}
+//					encoderOutputVideoFormat = videoEncoder.getOutputFormat();
+//					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
+//					muxer.start();
+//					muxing = true;
+//					break;
+//				}
+//				if (encoderOutputBufferIndex < 0) {
+//					Log.d(TAG, "video encoder: unexpected result from encoder.dequeueOutputBuffer: " + encoderOutputBufferIndex);
+//					break;
+//				}
+//				if (VERBOSE) {
+//					Log.d(TAG, "video encoder: returned output buffer: " + encoderOutputBufferIndex);
+//					Log.d(TAG, "video encoder: returned buffer of size " + videoEncoderOutputBufferInfo.size);
+//					Log.d(TAG, "video encoder: returned buffer for time " + videoEncoderOutputBufferInfo.presentationTimeUs);
+//				}
+//				ByteBuffer encoderOutputBuffer = videoEncoderOutputBuffers[encoderOutputBufferIndex];
+//				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+//					if (VERBOSE)
+//						Log.d(TAG, "video encoder: codec config buffer");
+//					videoEncoderOutputBufferInfo.size = 0;
+//				}
+//				if (videoEncoderOutputBufferInfo.size != 0) {
+//					if (!muxing) {
+//						throw new RuntimeException("muxer hasn't started");
+//					}
+//					encoderOutputBuffer.position(videoEncoderOutputBufferInfo.offset);
+//					encoderOutputBuffer.limit(videoEncoderOutputBufferInfo.offset + videoEncoderOutputBufferInfo.size);
+//					muxer.writeSampleData(outputVideoTrack, encoderOutputBuffer, videoEncoderOutputBufferInfo);
+//				}
+//				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+//					if (VERBOSE)
+//						Log.d(TAG, "video encoder: EOS");
+//					videoEncoderDone = true;
+//				}
+//				videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
+//				videoEncodedFrameCount++;
+//				break;
+//			}
 
 			// 从音频编码器中获取帧并发送给Muxer
 			while (mCopyAudio && !audioEncoderDone && (encoderOutputAudioFormat == null || muxing)) {
@@ -794,13 +790,13 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 					if (VERBOSE)
 						Log.d(TAG, "audio encoder: output format changed");
 					if (outputAudioTrack >= 0) {
-						fail("audio encoder changed its output format again?");
+//						fail("audio encoder changed its output format again?");
 					}
 
 					encoderOutputAudioFormat = audioEncoder.getOutputFormat();
 					break;
 				}
-				assertTrue("should have added track before processing output", muxing);
+//				assertTrue("should have added track before processing output", muxing);
 				if (VERBOSE) {
 					Log.d(TAG, "audio encoder: returned output buffer: " + encoderOutputBufferIndex);
 					Log.d(TAG, "audio encoder: returned buffer of size " + audioEncoderOutputBufferInfo.size);
@@ -830,28 +826,28 @@ public class ExtractDecodeEditEncodeMuxTest extends AndroidTestCase {
 				break;
 			}
 
-			if (!muxing && (!mCopyAudio || encoderOutputAudioFormat != null) && (!mCopyVideo || encoderOutputVideoFormat != null)) {
-				if (mCopyVideo) {
-					Log.d(TAG, "muxer: adding video track.");
-					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
-				}
-				if (mCopyAudio) {
-					Log.d(TAG, "muxer: adding audio track.");
-					outputAudioTrack = muxer.addTrack(encoderOutputAudioFormat);
-				}
-				Log.d(TAG, "muxer: starting");
-				muxer.start();
-				muxing = true;
-			}
+//			if (!muxing && (!mCopyAudio || encoderOutputAudioFormat != null) && (!mCopyVideo || encoderOutputVideoFormat != null)) {
+//				if (mCopyVideo) {
+//					Log.d(TAG, "muxer: adding video track.");
+//					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
+//				}
+//				if (mCopyAudio) {
+//					Log.d(TAG, "muxer: adding audio track.");
+//					outputAudioTrack = muxer.addTrack(encoderOutputAudioFormat);
+//				}
+//				Log.d(TAG, "muxer: starting");
+//				muxer.start();
+//				muxing = true;
+//			}
 		}
 
 		// Basic sanity checks.
 		if (mCopyVideo) {
-			assertEquals("encoded and decoded video frame counts should match", videoDecodedFrameCount, videoEncodedFrameCount);
-			assertTrue("decoded frame count should be less than extracted frame count", videoDecodedFrameCount <= videoExtractedFrameCount);
+//			assertEquals("encoded and decoded video frame counts should match", videoDecodedFrameCount, videoEncodedFrameCount);
+//			assertTrue("decoded frame count should be less than extracted frame count", videoDecodedFrameCount <= videoExtractedFrameCount);
 		}
 		if (mCopyAudio) {
-			assertEquals("no frame should be pending", -1, pendingAudioDecoderOutputBufferIndex);
+//			assertEquals("no frame should be pending", -1, pendingAudioDecoderOutputBufferIndex);
 		}
 		// TODO: Check the generated output file.
 	}

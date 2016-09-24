@@ -73,7 +73,7 @@ public class MediaFormatStrategyPresets {
     private MediaFormatStrategyPresets() {
     }
     
-    public static MediaFormatStrategy createDecreaseBitrateFormatStrategy(FileDescriptor input, String mime) {
-    	return new DecreaseBitrateFormatStrategy(input, mime);
+    public static MediaFormatStrategy createDecreaseBitrateFormatStrategy(int videoBitRate, int audioBitRate, int audioChannels) {
+    	return new CompressFileSizeFormatStrategy(videoBitRate, audioBitRate, audioChannels);
     }
 }

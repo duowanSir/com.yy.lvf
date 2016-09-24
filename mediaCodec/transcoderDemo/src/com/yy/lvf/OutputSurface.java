@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.yy.lvf.transcoder;
+package com.yy.lvf;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
@@ -52,7 +52,7 @@ import javax.microedition.khronos.opengles.GL10;
  * By default, the Surface will be using a BufferQueue in asynchronous mode, so we
  * can potentially drop frames.
  */
-class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
+public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
     private static final String TAG = "OutputSurface";
     private static final boolean VERBOSE = false;
 

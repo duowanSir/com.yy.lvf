@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.yy.lvf.transcoder;
+package com.yy.lvf;
 
 import android.opengl.EGL14;
 import android.opengl.EGLExt;
@@ -33,7 +33,7 @@ import android.view.Surface;
  * to create an EGL window surface.  Calls to eglSwapBuffers() cause a frame of data to be sent
  * to the video encoder.
  */
-class InputSurface {
+public class InputSurface {
     private static final String TAG = "InputSurface";
     private static final boolean VERBOSE = false;
 
