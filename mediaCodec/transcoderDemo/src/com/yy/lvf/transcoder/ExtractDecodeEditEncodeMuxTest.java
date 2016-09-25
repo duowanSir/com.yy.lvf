@@ -129,7 +129,6 @@ public class ExtractDecodeEditEncodeMuxTest {
 			TestWrapper wrapper = new TestWrapper(test);
 			Thread th = new Thread(wrapper, "codec test");
 			th.start();
-			th.join();
 			if (wrapper.mThrowable != null) {
 				throw wrapper.mThrowable;
 			}
@@ -410,13 +409,11 @@ public class ExtractDecodeEditEncodeMuxTest {
 	private void doExtractDecodeEditEncodeMux(MediaExtractor videoExtractor, MediaExtractor audioExtractor, MediaCodec videoDecoder, MediaCodec videoEncoder, MediaCodec audioDecoder, MediaCodec audioEncoder, MediaMuxer muxer, InputSurface inputSurface, OutputSurface outputSurface) {
 		// 根据MediaCodec工作的数据流图，每个MediaCodec基本对应两组
 		ByteBuffer[] videoDecoderInputBuffers = null;
-//		ByteBuffer[] videoDecoderOutputBuffers = null;
 		ByteBuffer[] videoEncoderOutputBuffers = null;
 		MediaCodec.BufferInfo videoDecoderOutputBufferInfo = null;
 		MediaCodec.BufferInfo videoEncoderOutputBufferInfo = null;
 		if (mCopyVideo) {
 			videoDecoderInputBuffers = videoDecoder.getInputBuffers();
-//			videoDecoderOutputBuffers = videoDecoder.getOutputBuffers();
 			videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
 			videoDecoderOutputBufferInfo = new MediaCodec.BufferInfo();
 			videoEncoderOutputBufferInfo = new MediaCodec.BufferInfo();
@@ -714,63 +711,63 @@ public class ExtractDecodeEditEncodeMuxTest {
 			}
 
 			// 编码（输出）---> 封装
-//			while (mCopyVideo && !videoEncoderDone && (encoderOutputVideoFormat == null || muxing)) {
-//				int encoderOutputBufferIndex = videoEncoder.dequeueOutputBuffer(videoEncoderOutputBufferInfo, TIMEOUT_USEC);
-//				if (encoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-//					if (VERBOSE)
-//						Log.d(TAG, "no video encoder output buffer");
-//					break;
-//				}
-//				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-//					if (VERBOSE)
-//						Log.d(TAG, "video encoder: output buffers changed");
-//					videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
-//					break;
-//				}
-//				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-//					if (VERBOSE)
-//						Log.d(TAG, "video encoder: output format changed");
-//					if (outputVideoTrack >= 0 || muxing) {
-//						throw new RuntimeException("format changed twice");
-//					}
-//					encoderOutputVideoFormat = videoEncoder.getOutputFormat();
-//					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
-//					muxer.start();
-//					muxing = true;
-//					break;
-//				}
-//				if (encoderOutputBufferIndex < 0) {
-//					Log.d(TAG, "video encoder: unexpected result from encoder.dequeueOutputBuffer: " + encoderOutputBufferIndex);
-//					break;
-//				}
-//				if (VERBOSE) {
-//					Log.d(TAG, "video encoder: returned output buffer: " + encoderOutputBufferIndex);
-//					Log.d(TAG, "video encoder: returned buffer of size " + videoEncoderOutputBufferInfo.size);
-//					Log.d(TAG, "video encoder: returned buffer for time " + videoEncoderOutputBufferInfo.presentationTimeUs);
-//				}
-//				ByteBuffer encoderOutputBuffer = videoEncoderOutputBuffers[encoderOutputBufferIndex];
-//				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-//					if (VERBOSE)
-//						Log.d(TAG, "video encoder: codec config buffer");
-//					videoEncoderOutputBufferInfo.size = 0;
-//				}
-//				if (videoEncoderOutputBufferInfo.size != 0) {
-//					if (!muxing) {
-//						throw new RuntimeException("muxer hasn't started");
-//					}
-//					encoderOutputBuffer.position(videoEncoderOutputBufferInfo.offset);
-//					encoderOutputBuffer.limit(videoEncoderOutputBufferInfo.offset + videoEncoderOutputBufferInfo.size);
-//					muxer.writeSampleData(outputVideoTrack, encoderOutputBuffer, videoEncoderOutputBufferInfo);
-//				}
-//				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-//					if (VERBOSE)
-//						Log.d(TAG, "video encoder: EOS");
-//					videoEncoderDone = true;
-//				}
-//				videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
-//				videoEncodedFrameCount++;
-//				break;
-//			}
+			while (mCopyVideo && !videoEncoderDone && (encoderOutputVideoFormat == null || muxing)) {
+				int encoderOutputBufferIndex = videoEncoder.dequeueOutputBuffer(videoEncoderOutputBufferInfo, TIMEOUT_USEC);
+				if (encoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
+					if (VERBOSE)
+						Log.d(TAG, "no video encoder output buffer");
+					break;
+				}
+				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+					if (VERBOSE)
+						Log.d(TAG, "video encoder: output buffers changed");
+					videoEncoderOutputBuffers = videoEncoder.getOutputBuffers();
+					break;
+				}
+				if (encoderOutputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+					if (VERBOSE)
+						Log.d(TAG, "video encoder: output format changed");
+					if (outputVideoTrack >= 0 || muxing) {
+						throw new RuntimeException("format changed twice");
+					}
+					encoderOutputVideoFormat = videoEncoder.getOutputFormat();
+					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
+					muxer.start();
+					muxing = true;
+					break;
+				}
+				if (encoderOutputBufferIndex < 0) {
+					Log.d(TAG, "video encoder: unexpected result from encoder.dequeueOutputBuffer: " + encoderOutputBufferIndex);
+					break;
+				}
+				if (VERBOSE) {
+					Log.d(TAG, "video encoder: returned output buffer: " + encoderOutputBufferIndex);
+					Log.d(TAG, "video encoder: returned buffer of size " + videoEncoderOutputBufferInfo.size);
+					Log.d(TAG, "video encoder: returned buffer for time " + videoEncoderOutputBufferInfo.presentationTimeUs);
+				}
+				ByteBuffer encoderOutputBuffer = videoEncoderOutputBuffers[encoderOutputBufferIndex];
+				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+					if (VERBOSE)
+						Log.d(TAG, "video encoder: codec config buffer");
+					videoEncoderOutputBufferInfo.size = 0;
+				}
+				if (videoEncoderOutputBufferInfo.size != 0) {
+					if (!muxing) {
+						throw new RuntimeException("muxer hasn't started");
+					}
+					encoderOutputBuffer.position(videoEncoderOutputBufferInfo.offset);
+					encoderOutputBuffer.limit(videoEncoderOutputBufferInfo.offset + videoEncoderOutputBufferInfo.size);
+					muxer.writeSampleData(outputVideoTrack, encoderOutputBuffer, videoEncoderOutputBufferInfo);
+				}
+				if ((videoEncoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+					if (VERBOSE)
+						Log.d(TAG, "video encoder: EOS");
+					videoEncoderDone = true;
+				}
+				videoEncoder.releaseOutputBuffer(encoderOutputBufferIndex, false);
+				videoEncodedFrameCount++;
+				break;
+			}
 
 			// 从音频编码器中获取帧并发送给Muxer
 			while (mCopyAudio && !audioEncoderDone && (encoderOutputAudioFormat == null || muxing)) {

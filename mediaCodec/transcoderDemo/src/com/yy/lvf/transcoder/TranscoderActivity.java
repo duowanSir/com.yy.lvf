@@ -30,7 +30,7 @@ public class TranscoderActivity extends Activity {
 	private static final String TAG = "TranscoderActivity";
 	private static final int REQUEST_CODE_PICK = 1;
 	private static final int PROGRESS_BAR_MAX = 1000;
-	private boolean condition = true;
+	private boolean condition = false;
 	private Future<Void> mFuture;
 	private File mRootD;
 	private File mOutputD;
