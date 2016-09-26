@@ -495,7 +495,7 @@ public class ExtractDecodeEditEncodeMuxTest {
 					muxing, outputVideoTrack, outputAudioTrack));
 			}
 			
-			// 提取 ---> 解码（输入）
+			// 视频提取 ---> 解码（输入）
 			while (mCopyVideo && !videoExtractorDone && (encoderOutputVideoFormat == null || muxing)) {
 				int decoderInputBufferIndex = videoDecoder.dequeueInputBuffer(TIMEOUT_USEC);// 请求输入buffer
 				if (decoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
@@ -515,10 +515,8 @@ public class ExtractDecodeEditEncodeMuxTest {
 				}
 				if (size >= 0) {
 					videoDecoder.queueInputBuffer(decoderInputBufferIndex, 0, size, presentationTime, videoExtractor.getSampleFlags());
-					videoExtractorDone = !videoExtractor.advance();// 当前采样是否提取完
-				} else {
-					videoExtractorDone = true;
 				}
+				videoExtractorDone = !videoExtractor.advance();// 当前采样是否提取完
 				if (videoExtractorDone) {
 					if (VERBOSE) {
 						Log.d(TAG, "video extractor: EOS");
@@ -528,8 +526,9 @@ public class ExtractDecodeEditEncodeMuxTest {
 				videoExtractedFrameCount++;
 				break;
 			}
-
-			while (mCopyAudio && !audioExtractorDone && (encoderOutputAudioFormat == null || muxing)) {// 音频解码器读取一帧的数据
+			
+			// 音频提取 ---> 解码（输入）
+			while (mCopyAudio && !audioExtractorDone && (encoderOutputAudioFormat == null || muxing)) {
 				int decoderInputBufferIndex = audioDecoder.dequeueInputBuffer(TIMEOUT_USEC);
 				if (decoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE)
@@ -559,7 +558,7 @@ public class ExtractDecodeEditEncodeMuxTest {
 				break;
 			}
 
-			// 解码（输出）---> 编码（输入）
+			// 视频解码（输出）---> 编码（输入）
 			while (mCopyVideo && !videoDecoderDone && (encoderOutputVideoFormat == null || muxing)) {
 				int decoderOutputBufferIndex = videoDecoder.dequeueOutputBuffer(videoDecoderOutputBufferInfo, TIMEOUT_USEC);
 				if (decoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
@@ -585,26 +584,32 @@ public class ExtractDecodeEditEncodeMuxTest {
 					Log.d(TAG, "video decoder: returned buffer for time " + videoDecoderOutputBufferInfo.presentationTimeUs);
 				}
 				boolean render = (videoDecoderOutputBufferInfo.size > 0);
+				// 过滤配置buffer
 				if ((videoDecoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-					if (VERBOSE)
-						Log.d(TAG, "video decoder: codec config buffer");
+					if (VERBOSE) {
+					    Log.d(TAG, "video decoder: codec config buffer");
+					}
 					videoDecoder.releaseOutputBuffer(decoderOutputBufferIndex, render);
 					break;
 				}
 				videoDecoder.releaseOutputBuffer(decoderOutputBufferIndex, render);
 				if (render) {
-					if (VERBOSE)
-						Log.d(TAG, "output surface: await new image");
+					if (VERBOSE) {
+					    Log.d(TAG, "output surface: await new image");
+					}
 					outputSurface.awaitNewImage();
-					if (VERBOSE)
-						Log.d(TAG, "output surface: draw image");
+					if (VERBOSE) {
+					    Log.d(TAG, "output surface: draw image");
+					}
 					outputSurface.drawImage();// 把数据从SurfaceTexture画到当前EGLSurface
 					inputSurface.setPresentationTime(videoDecoderOutputBufferInfo.presentationTimeUs * 1000);
-					if (VERBOSE)
-						Log.d(TAG, "input surface: swap buffers");
+					if (VERBOSE) {
+					    Log.d(TAG, "input surface: swap buffers");
+					}
 					inputSurface.swapBuffers();// 调用EGLSurface数据
-					if (VERBOSE)
-						Log.d(TAG, "video encoder: notified of new frame");
+					if (VERBOSE) {
+					    Log.d(TAG, "video encoder: notified of new frame");
+					}
 				}
 				if ((videoDecoderOutputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 					if (VERBOSE)
@@ -616,7 +621,7 @@ public class ExtractDecodeEditEncodeMuxTest {
 				break;
 			}
 
-			// 从音频decoder中拉取帧，如果还有待处理的buffer就阻塞
+			// 音频解码（输出）---> 编码（输入）
 			while (mCopyAudio && !audioDecoderDone && pendingAudioDecoderOutputBufferIndex == -1 && (encoderOutputAudioFormat == null || muxing)) {
 				int decoderOutputBufferIndex = audioDecoder.dequeueOutputBuffer(audioDecoderOutputBufferInfo, TIMEOUT_USEC);
 				if (decoderOutputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
@@ -823,19 +828,19 @@ public class ExtractDecodeEditEncodeMuxTest {
 				break;
 			}
 
-//			if (!muxing && (!mCopyAudio || encoderOutputAudioFormat != null) && (!mCopyVideo || encoderOutputVideoFormat != null)) {
-//				if (mCopyVideo) {
-//					Log.d(TAG, "muxer: adding video track.");
-//					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
-//				}
-//				if (mCopyAudio) {
-//					Log.d(TAG, "muxer: adding audio track.");
-//					outputAudioTrack = muxer.addTrack(encoderOutputAudioFormat);
-//				}
-//				Log.d(TAG, "muxer: starting");
-//				muxer.start();
-//				muxing = true;
-//			}
+			if (!muxing && (!mCopyAudio || encoderOutputAudioFormat != null) && (!mCopyVideo || encoderOutputVideoFormat != null)) {
+				if (mCopyVideo) {
+					Log.d(TAG, "muxer: adding video track.");
+					outputVideoTrack = muxer.addTrack(encoderOutputVideoFormat);
+				}
+				if (mCopyAudio) {
+					Log.d(TAG, "muxer: adding audio track.");
+					outputAudioTrack = muxer.addTrack(encoderOutputAudioFormat);
+				}
+				Log.d(TAG, "muxer: starting");
+				muxer.start();
+				muxing = true;
+			}
 		}
 
 		// Basic sanity checks.
