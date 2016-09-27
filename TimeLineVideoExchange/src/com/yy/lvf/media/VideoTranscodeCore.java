@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
-import android.media.MediaDataSource;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
@@ -24,19 +23,19 @@ public class VideoTranscodeCore {
 	private File mInputF;
 	private File mOutputF;
 
-	private boolean mNeedTranscodeVideo;
-	private boolean mNeedTranscodeAudio;
+	private boolean mNeedTranscodeVideo = true;
+	private boolean mNeedTranscodeAudio = true;
 
-	private String mOutputVideoMime;
-	private int mOutputVideoWidth;
-	private int mOutputVideoHeight;
-	private int mOutputVideoBitRate;
-	private int mOutputVideoFrameRate;
-	private int mOutputVideoIFrameInterval;
+	private String mOutputVideoMime = "video/avc";
+	private int mOutputVideoWidth = 360;
+	private int mOutputVideoHeight = 360;
+	private int mOutputVideoBitRate = 600000;
+	private int mOutputVideoFrameRate = 10;
+	private int mOutputVideoIFrameInterval = 5;
 
-	private String mOutputAudioMime;
-	private int mOutputAudioBitRate;
-	private int mOutputAudioChannelCount;
+	private String mOutputAudioMime = "audio/mp4a-latm";
+	private int mOutputAudioBitRate = 128000;
+	private int mOutputAudioChannelCount = 2;
 
 	private MediaExtractor mAudioExtractor;
 	private MediaExtractor mVideoExtractor;
@@ -47,15 +46,19 @@ public class VideoTranscodeCore {
 	private MediaCodec mVideoEncoder;
 	private InputSurface mVideoEncoderInputSurface;
 	private MediaMuxer mMuxer;
-	private ByteBuffer mMuxerInputBuffer;
 
 	private int mInputVideoTrack;
 	private int mInputAudioTrack;
 
-	private VideoTranscodeCore() {
+	// private VideoTranscodeCore() {
+	// }
+
+	public void setFile(File input, File output) {
+		mInputF = input;
+		mOutputF = output;
 	}
 
-	private boolean init() {
+	public boolean init() {
 		if (mNeedTranscodeAudio) {
 			MediaCodecInfo encoderInfo = checkCapabilities(mOutputAudioMime, true);
 			if (encoderInfo == null) {
@@ -148,7 +151,6 @@ public class VideoTranscodeCore {
 		}
 		try {
 			mMuxer = new MediaMuxer(mOutputF.getAbsolutePath(), OutputFormat.MUXER_OUTPUT_MPEG_4);
-			mMuxerInputBuffer = ByteBuffer.allocate(5120);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -186,75 +188,71 @@ public class VideoTranscodeCore {
 		ByteBuffer[] videoEncoderOutputBuffer = mVideoEncoder.getOutputBuffers();
 		MediaCodec.BufferInfo videoEncoderOutputBufferInfo = new MediaCodec.BufferInfo();
 
-		while ((mNeedTranscodeAudio || mNeedTranscodeVideo) && !audioEncodeDone && !videoEncodeDone) {
+		while ((mNeedTranscodeAudio && !audioEncodeDone) || (mNeedTranscodeVideo && !videoEncodeDone)) {
 			// 音频提取--->解码输入
-			while (mNeedTranscodeAudio && !audioExtractDone && (audioEncoderDeterminedFormat == null || muxerStarted)) {
-				int audioDecoderInputBufferIndex = mAudioDecoder.dequeueInputBuffer(TIMEOUT_US);
-				if (audioDecoderInputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
+			if (mNeedTranscodeAudio && !audioExtractDone && (audioEncoderDeterminedFormat == null || muxerStarted)) {
+				int inputBufferIndex = mAudioDecoder.dequeueInputBuffer(TIMEOUT_US);
+				if (inputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE) {
 						Log.d(TAG, "audio decoder: 输入阻塞");
 					}
-					break;
+				} else if (inputBufferIndex < 0) {
+					if (VERBOSE) {
+						Log.d(TAG, "audio decoder: invalid index");
+					}
+				} else {
+					ByteBuffer input = audioDecoderInputBuffer[inputBufferIndex];
+					int size = mAudioExtractor.readSampleData(input, 0);
+					long timeUs = mAudioExtractor.getSampleTime();
+					int flag = mAudioExtractor.getSampleFlags();
+					if (VERBOSE) {
+						Log.d(TAG, "audio extractor: "
+							+ "[audio decoder input index: " + inputBufferIndex
+							+ ", size: " + size
+							+ ", presentation time: " + timeUs
+							+ ",  flag: " + flag
+							+ "]");
+					}
+					if (size > 0) {
+						mAudioDecoder.queueInputBuffer(inputBufferIndex, 0, size, timeUs, flag);
+					}
+					audioExtractDone = !mAudioExtractor.advance();
+					if (audioExtractDone) {
+						mAudioDecoder.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+					}
 				}
-				ByteBuffer input = audioDecoderInputBuffer[audioDecoderInputBufferIndex];
-				int size = mAudioExtractor.readSampleData(input, 0);
-				long timeUs = mAudioExtractor.getSampleTime();
-				int flag = mAudioExtractor.getSampleFlags();
-				if (VERBOSE) {
-					Log.d(TAG, "audio extractor: "
-						+ "[audio decoder input index: " + audioDecoderInputBufferIndex
-						+ ", size: " + size
-						+ ", presentation time: " + timeUs
-						+ ",  flag: " + flag
-						+ "]");
-				}
-				if (size > 0) {
-					mAudioDecoder.queueInputBuffer(audioDecoderInputBufferIndex, 0, size, timeUs, flag);
-				}
-				if (size == -1) {
-					mAudioDecoder.queueInputBuffer(audioDecoderInputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-					audioExtractDone = true;
-					break;
-				}
-				audioExtractDone = !mAudioExtractor.advance();
-				if (audioExtractDone) {
-					mAudioDecoder.queueInputBuffer(audioDecoderInputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-					break;
-				}
-				break;
 			}
 			// 视频提取--->解码输入
-			while (mNeedTranscodeVideo && !videoExtractDone && (videoEncoderDeterminedFormat == null || muxerStarted)) {
+			if (mNeedTranscodeVideo && !videoExtractDone && (videoEncoderDeterminedFormat == null || muxerStarted)) {
 				int videoDecoderInputIndex = mVideoDecoder.dequeueInputBuffer(TIMEOUT_US);
 				if (videoDecoderInputIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
 					if (VERBOSE) {
-						Log.d(TAG, "video extractor: 输入阻塞");
+						Log.d(TAG, "video decoder: 输入阻塞");
 					}
-					break;
-				}
-				ByteBuffer inputBuffer = videoDecoderInputBuffer[videoDecoderInputIndex];
-				int size = mVideoExtractor.readSampleData(inputBuffer, 0);
-				long timeUs = mVideoExtractor.getSampleTime();
-				int flag = mVideoExtractor.getSampleFlags();
-				if (VERBOSE) {
-					Log.d(TAG, "video extractor: "
-						+ "[video decoder input index: " + videoDecoderInputIndex
-						+ ", size: " + size
-						+ ", presentation time: " + timeUs
-						+ ",  flag: " + flag
-						+ "]");
-				}
-				if (size > 0) {
-					mVideoDecoder.queueInputBuffer(videoDecoderInputIndex, 0, size, timeUs, flag);
-				}
-				if (size == -1) {
-					mVideoDecoder.queueInputBuffer(videoDecoderInputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-					break;
-				}
-				videoExtractDone = !mVideoExtractor.advance();
-				if (videoExtractDone) {
-					mVideoDecoder.queueInputBuffer(videoDecoderInputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-					break;
+				} else if (videoDecoderInputIndex < 0) {
+					if (VERBOSE) {
+						Log.d(TAG, "video decoder: invalid index");
+					}
+				} else {
+					ByteBuffer inputBuffer = videoDecoderInputBuffer[videoDecoderInputIndex];
+					int size = mVideoExtractor.readSampleData(inputBuffer, 0);
+					long timeUs = mVideoExtractor.getSampleTime();
+					int flag = mVideoExtractor.getSampleFlags();
+					if (VERBOSE) {
+						Log.d(TAG, "video extractor: "
+							+ "[video decoder input index: " + videoDecoderInputIndex
+							+ ", size: " + size
+							+ ", presentation time: " + timeUs
+							+ ",  flag: " + flag
+							+ "]");
+					}
+					if (size > 0) {
+						mVideoDecoder.queueInputBuffer(videoDecoderInputIndex, 0, size, timeUs, flag);
+					}
+					videoExtractDone = !mVideoExtractor.advance();
+					if (videoExtractDone) {
+						mVideoDecoder.queueInputBuffer(videoDecoderInputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+					}
 				}
 			}
 			// 音频解码输出--->音频编码输入
@@ -401,6 +399,83 @@ public class VideoTranscodeCore {
 		}
 	}
 
+	public void transcode() {
+		if (init()) {
+			try {
+				syncDoExtractDecodeEncodeMux();
+			} finally {
+				try {
+					if (mVideoExtractor != null) {
+						mVideoExtractor.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mAudioExtractor != null) {
+						mAudioExtractor.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mVideoDecoder != null) {
+						mVideoDecoder.stop();
+						mVideoDecoder.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mVideoDecoderOutputSurface != null) {
+						mVideoDecoderOutputSurface.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mVideoEncoder != null) {
+						mVideoEncoder.stop();
+						mVideoEncoder.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mAudioDecoder != null) {
+						mAudioDecoder.stop();
+						mAudioDecoder.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mAudioEncoder != null) {
+						mAudioEncoder.stop();
+						mAudioEncoder.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mMuxer != null) {
+						mMuxer.stop();
+						mMuxer.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (mVideoEncoderInputSurface != null) {
+						mVideoEncoderInputSurface.release();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 	private MediaFormat createVideoTrackFormat(MediaFormat inputFormat) {
 		MediaFormat outputVideoTrackFormat = MediaFormat.createVideoFormat(mOutputVideoMime, mOutputVideoWidth, mOutputVideoHeight);
 		outputVideoTrackFormat.setInteger(MediaFormat.KEY_BIT_RATE, mOutputVideoBitRate);
@@ -430,7 +505,7 @@ public class VideoTranscodeCore {
 		return track;
 	}
 
-	public MediaCodecInfo checkCapabilities(String mime, boolean isEncoder) {
+	public static MediaCodecInfo checkCapabilities(String mime, boolean isEncoder) {
 		for (int i = 0; i < MediaCodecList.getCodecCount(); i++) {
 			MediaCodecInfo codecInfo = MediaCodecList.getCodecInfoAt(i);
 			String[] types = codecInfo.getSupportedTypes();

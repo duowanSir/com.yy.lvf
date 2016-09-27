@@ -462,6 +462,8 @@ public class ExtractDecodeEditEncodeMuxTest {
 		int audioExtractedFrameCount = 0;
 		int audioDecodedFrameCount = 0;
 		int audioEncodedFrameCount = 0;
+		
+		long videoDecoderPresentaionUsSum = 0;
 
 		while ((mCopyVideo && !videoEncoderDone) || (mCopyAudio && !audioEncoderDone)) {
 			if (VERBOSE) {
@@ -515,6 +517,7 @@ public class ExtractDecodeEditEncodeMuxTest {
 				}
 				if (size >= 0) {
 					videoDecoder.queueInputBuffer(decoderInputBufferIndex, 0, size, presentationTime, videoExtractor.getSampleFlags());
+					videoDecoderPresentaionUsSum += presentationTime;
 				}
 				videoExtractorDone = !videoExtractor.advance();// 当前采样是否提取完
 				if (videoExtractorDone) {
@@ -852,6 +855,7 @@ public class ExtractDecodeEditEncodeMuxTest {
 		if (mCopyAudio) {
 			// assertEquals("no frame should be pending", -1, pendingAudioDecoderOutputBufferIndex);
 		}
+		Log.d(TAG, "videoDecoderPresentaionUsSum: " + videoDecoderPresentaionUsSum);
 		// TODO: Check the generated output file.
 	}
 
