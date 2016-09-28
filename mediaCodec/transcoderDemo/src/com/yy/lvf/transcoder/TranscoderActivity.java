@@ -23,6 +23,7 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import net.ypresto.androidtranscoder.MediaTranscoder;
+import net.ypresto.androidtranscoder.engine.VideoTrackTranscoder;
 import net.ypresto.androidtranscoder.format.CompressFileSizeFormatStrategy;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
@@ -129,18 +130,25 @@ public class TranscoderActivity extends Activity {
 				} else {
 					Uri uri = data.getData();
 					String inputPath = FileChooser.getAbsolutePathFromUri(this, uri);
-					File inputF = new File(inputPath);
+					final File inputF = new File(inputPath);
 					ExtractDecodeEditEncodeMuxTest engine = new ExtractDecodeEditEncodeMuxTest();
-					File outputF = new File(mOutputD, inputF.getName());
+					final File outputF = new File(mOutputD, inputF.getName());
 					if (outputF.exists()) {
 						outputF.delete();
 					}
-					try {
-						outputF.createNewFile();
-						engine.testExtractDecodeEditEncodeMuxAudioVideo(inputF, outputF);
-					} catch (Throwable e) {
-						e.printStackTrace();
-					}
+//					try {
+//						outputF.createNewFile();
+//						engine.testExtractDecodeEditEncodeMuxAudioVideo(inputF, outputF);
+//					} catch (Throwable e) {
+//						e.printStackTrace();
+//					}
+					new Thread() {
+						public void run() {
+							VideoTranscodeCore core = new VideoTranscodeCore();
+							core.setFile(inputF, outputF);
+							core.transcode();
+						};
+					}.start();
 				}
 			}
 			break;
