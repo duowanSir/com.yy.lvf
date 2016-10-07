@@ -5,12 +5,16 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicReference;
 
+import android.annotation.TargetApi;
 import android.media.MediaCodec;
+import android.media.MediaCodec.Callback;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
+import android.media.MediaCodec.BufferInfo;
+import android.media.MediaCodec.CodecException;
 import android.media.MediaMuxer.OutputFormat;
 import android.util.Log;
 import android.view.Surface;
@@ -397,6 +401,37 @@ public class VideoTranscodeCore {
 				}
 			}
 		}
+	}
+	
+	@TargetApi(23)
+	private void asyncDoExtractDecodeEncodeMux() {
+	    int pendingAudioEncodeFrames = -1;
+	    MediaFormat audioEncoderDeterminedFormat = null;
+	    
+	    if (mNeedTranscodeAudio) {
+		mAudioDecoder.setCallback(new Callback() {
+		    
+		    @Override
+		    public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
+		    }
+		    
+		    @Override
+		    public void onOutputBufferAvailable(MediaCodec codec, int index, BufferInfo info) {
+		    }
+		    
+		    @Override
+		    public void onInputBufferAvailable(MediaCodec codec, int index) {
+		    }
+		    
+		    @Override
+		    public void onError(MediaCodec codec, CodecException e) {
+		    }
+		});
+	    }
+	    
+	    ByteBuffer[] videoDecoderInputBuffer = null;
+	    
+	    
 	}
 
 	public void transcode() {

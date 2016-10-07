@@ -1,0 +1,89 @@
+简介
+	MediaCodec可被用来获取底层媒体codec，即编码器/解码器组件。它是Android底层多媒体基础组件，经常和MediaExtractor、MediaSync、MediaMuxer、MediaCrypto、
+MediaDrm、Image、Surface、AudioTrack一起使用。广义上看MediaCodec处理输入数据产生输出数据，它异步的处理数据并使用一系列的输入/输出buffer。简单来讲你请求空
+的输入buffer，写入数据然后将它发送给编解码器处理。编解码器用完输入数据，然后将它传送至空的输出buffer。最后你请求填满数据的输出buffer，消费掉里面的数据并释
+放输出buffer给回到编解码器。
+
+数据类型
+	Codecs操作三种类型的数据：压缩数据、原始音频数据、原始视频数据。这三种数据都可以用ByteBuffer来处理，但是你应该使用Surface来处理原始视频以增强Codec的性
+能，Surface使用本地视频buffer而不用映射或拷贝数据到ByteBuffer，从而它更高效。一般你不会拿到视频数据当你使用Surface时，但是你可以使用ImageReader获取到不安全
+的解码视频帧。这依旧比使用ByteBuffer要高效，因为一些native buffer或许直接映射到了ByteBuffer。当使用ByteBuffer模式，你可以获取到原始视频帧通过使用Image和
+getInput/OutputImage。
+
+压缩缓冲
+	输入buffer（解码器）和输出buffer（编码器）包含依照MediaFormat编码的压缩数据，对于视频数据这是一个压缩的视频帧，对于音频数据这通常是一个存取单元（一个
+编码音频段一般的包含一些毫秒级依照MediaFormat编码的音频），但是这个条件并不是非常严格，一个buffer可能包含多个可存取的编码音频数据。在任一种情况下，buffer的
+起止位置不会有任意字节边界，反而有以帧为存取单位的边界。
+
+原始音频缓冲
+	原始音频buffer包含全部帧的PCM音频数据，以声道序每个声道一个采样。每个采样都是16位native字节序的有符号整形数据。
+
+原始视频缓冲
+	在ByteBuffer模式视频buffers根据颜色格式排列，你能拿到支持的颜色格式数组从getCodecInfo().getCapabilitiesForType(…).colorFormats，视频codecs可能支持三种
+颜色格式：
+	native原始视频格式：格式标记为COLOR_FormatSurface，和输入/输出Surface一起使用。
+	可扩展YUV buffers（例如COLOR_FormatYUV420Flexible）：它可以和输入/输出Surface一起使用，在ByteBuffer模式下也可以通过getInput/OutputImage(int)使用。
+	其他，指定格式：这些通常只在ByteBuffer模式下被支持，一些颜色格式是供应商指定，其他格式定义在MediaCodecInfo.CodecCapabilities，颜色格式是一个可扩展的格式，
+	你仍然可以用getInput/OutputImage(int)。
+api22之后，所有的codecs都支持灵活的YUV4:2:0 buffers。
+
+在老设备上存取原始视频ByteBuffers
+	在21和Image支持之前，你需要使用输出格式KEY_STRIDE和KEY_SLICE_HEIGHT的值来理解原始输出buffers的数据排列。注意：在一些设备上KEY_SLICE_HEIGHT的值被设置为0，
+这表明KEY_SLICE_HEIGHT的值要么和帧高度相同，要么是帧高度对准某个值（通常是2的幂），不幸的是在这种情况下不能得知KEY_SLICE_HEIGHT的值。此外，
+平面格式（planar format）的U平面（plane）步幅（vertical stride）也没有指定或定义，尽管一般它是片高的一半。KEY_WIDTH和KEY_HEIGHT的值指定视频帧的大小；然而，
+对绝大多编码，视频图像只占视频帧的一部分，这用“crop rectangle”来表示。你需要从输出格式中使用以下key来拿到原始输出图像的“crop rectangle”，如果这些key的值不是
+分数，则视频数据占全部的视频帧。“crop rectangle”在输出帧的context被解释，在任何旋转信息使用之前。
+
+状态
+	在它的生命周期中，codec概念上存在于三个状态之一：stopped、excuting和released。stopped状态集实际上是三种状态的聚集：uninitialized、configured和error，而
+excuting状态概念上经历三个子状态：flushed、running、eos。当你用其中一个工厂方法创建一个codec时，codec处于uninitialized状态。首先你需要配置它通过configure()，
+这个方法将它带到configured状态，然后调用start()方法让它进入excuting状态，在这个状态你能处理数据通过前面讲到的buffer队列操作。
+	excuting状态包含三个子状态：flushed、running、eos，调用start()方法之后codec立即处于flushed子状态，在该状态下codec持有所有buffers。当第一个输入buffer出队
+列时，codec转换到running子状态，codec大部分生命周期都处于这一状态，当你将一个eos标记buffer入队列的时候，codec转换到eos子状态，在该状态下codec不再接收更多的
+输入buffer，但是依旧会产生输出buffer直到输出eos。在excuting状态下，你能够将codec从任意子状态转换到flushed状态通过调用flush()方法。调用stop()方法将codec转换到
+uninitialized状态，在这一状态可能需要重新配置。当你结束使用codec，你需要使用release()方法释放它。
+	在罕见的场合下，codec会遭遇错误而转换到error状态，错误状态信息的回传通过队列操作非法返回值和抛出异常。调用reset()方法使codec变得可用，你能够在任何状态下
+（除released）调用该方法将codec转换到uninitialized状态，否则，调用release()将codec转换到released最终状态。
+
+创建
+	使用MediaCodecList来为指定的MediaFormat创建MediaCodec。当解码一个文件或流时，你能拿到期望的MediaFormat通过MediaExtractor.getTrackFormat方法，注入任何你想
+要的功能通过MediaFormat.setFeatureEnabled，然后调用MediaCodecList.findDecoderForFormat来拿到能处理指定MediaFormat的codec的名字，最后调用
+createByCodecName(String)来创建codec。（注意：在api21给MediaCodecList.findDecoder/EncoderForFormat使用的MediaFormat必须不能包含帧率，使用
+format.setString(MediaFormat.KEY_FRAME_RATE, null)来清理MediaFormat中已经存在的帧率值）。你也能为指定的MIME创建首选的codec通过使用
+createDecoder/EncoderByType(String)，然而，这种方法不能注入功能，同时可能会创建出一个不能处理指定期望MediaFormat的codec。
+	创建安全解码器，在api20及之前，安全codec可能不会在MediaCodecList中列举出来，但是可能仍然能在系统上获取到。系统上存在的安全codec只能使用名字才能初始化，
+通过在正常codec名字后面添加“.secure”（所有安全codec的名字必须以“.secure”结尾），如果当前系统不存在安全codec，createByCodecName(String)将抛出IOException。在
+api21之前，你需要使用Feature_SecurePlayback来创建一个安全解码器。
+
+初始化
+	创建完codec之后，你可以使用setCallback如果你想异步处理数据，然后用指定的MediaFormat来配置codec，此时正是你为视频生产者指定输出Surface的时候——产生原始
+视频数据的codec（例如：视频解码器），此时也正是你为安全codecs设置解密参数的时候（见MediaCrypto）。最后，因为一些codecs能够在多种模式下运行，你必须指定你需
+要它作为一个编码器还是解码器。api21之后，你能够查询结果的输入、输出MediaFormat在configured状态，你能够用这去验证配置的结果在启动codec之前，例如color format。
+如果你想要用视频消费者本地化的处理原始输入视频buffers——一个codec处理原始视频输入，例如视频编码器——调用createInputSurface()为输入数据创建一个目标Surface在
+configure()方法之后，反之，用之前createPersistentInputSurface()发放生成的Surface配置codec，通过使用setInputSurface(Surface)方法。
+	codec-specific数据，一些MediaFormat，特别是aac音频和mpeg4，h.264和h.265视频格式需要实际视频数据被若干包含配置数据或者codec-specific数据的buffers前缀。当
+处理这些压缩格式，这些前缀数据必须在调用start()方法之后，其他帧数据之前提交到codec，这些数据必须用BUFFER_FLAG_CODEC_CONFIG标识在调用queueInputBuffer方法时。
+codec-specific数据也可以包含在MediaFormat中（setByteBuffer(String, ByteBuffer) “csd-0”、“csd-1”）作为参数传递给configure()方法，这些键总包含在从MediaExtractor
+获取到的MediaFormat中，MediaFormat中包含的codec-specific数据被自动提交给codec通过start()方法，你一定不要显式地提交codec-specific数据。如果MediaFormat不包含
+codec-specific数据，你可以根据MediaFormat的需要指定若干顺序正确的buffers作为codec-specific数据提交给codec。在h.264 avc情况下，你可以串联所有codec-specific
+数据并作为一个单独的codec-config buffer提交给codec。android使用如下codec-specific数据，这些也需要设置给track format为了正确的MediaMuxer轨道配置。每一个
+被“*”标记的参数对和codec-specific数据段必须以“\x00\x00\x00\x01”作为开始。（注意：需要小心的是如果codec马上处于flushed状态或者调用start()方法后不久，在任何
+输出数据和输出格式改变被返回之前，因为codec-specific数据在flush期间可能丢失，你必须重新提交codec-specifice数据使用信号BUFFER_FLAG_CODEC_CONFIG来保证正确的
+codec运行）。
+	编码器（或者说产生压缩数据的codecs）将产生并返回codec-specific数据，在其它合法buffer返回之前并标记成BUFFER_FLAG_CODEC_CONFIG，包含codec-specific数据的
+buffers没有有意义的时间戳。
+
+数据处理
+	每个codec持有一系列输入/输出buffers，通过buffer下角标引用它们，在成功调用start()方法之后，客户端既不也不“拥有”输入/输出buffers。在同步模式下，调用
+dequeueInput/OutputBuffer(...)从codec获取输入或输出buffer；在异步模式下，你会自动获取可用buffers通过MediaCodec.Callback.onInput/OutputBufferAvailable(...)
+回调。
+	在获取输入buffer上，用数据填满输入buffer并用queueInputBuffer或者queueSecureInputBuffer如果解密提交它，不要用同一个时间戳提交多个输入buffers（除非它是
+codec-specific数据）。codec接下来会返回一个只读的输出buffer通过onOutputBufferAvailable在异步模式下或者dequeueOutputBuffer在同步模式下，在输出buffer里面的
+数据被处理之后，调用releaseOutputBuffer方法将buffer释放给codec。当你不需要立即重新提交或释放buffers给回到codec时，持有输入或者输出buffer会停滞codec，并且
+这种现象和设备有关。特别地，codec可能会延迟产生输出buffer直到所有在外的buffers被重新提交或释放回来，因此，尽量不要持有可获取的buffers。api21及之后你可以
+使用异步方式处理数据。
+	异步处理使用buffers，在api21之后，首选异步处理数据的方法，通过在调用configure()方法之前设置一个回调。异步模式将状态转换变得轻量级，因为你必须在
+flush()之后调用start()以将codec转换到running子状态并开始接收输入buffers。同样地，在初始化codec之后调用start()将直接转换codec到running子状态并开始通过回调
+传递可获取的输入buffers（典型的异步代码）。
+	同步处理使用buffers，
+
