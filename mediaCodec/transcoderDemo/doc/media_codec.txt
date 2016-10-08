@@ -85,5 +85,23 @@ codec-specific数据）。codec接下来会返回一个只读的输出buffer通�
 	异步处理使用buffers，在api21之后，首选异步处理数据的方法，通过在调用configure()方法之前设置一个回调。异步模式将状态转换变得轻量级，因为你必须在
 flush()之后调用start()以将codec转换到running子状态并开始接收输入buffers。同样地，在初始化codec之后调用start()将直接转换codec到running子状态并开始通过回调
 传递可获取的输入buffers（典型的异步代码）。
-	同步处理使用buffers，
+	同步处理使用buffers，从api21之后，你应该通过getInput/OutputBuffer(int)或者getInput/OutputImage(int)来取到输入/输出buffers，即使是在同步模式下使用codec，
+这种方式容许某些框架上的改进，例如，当处理动态内容时。这种优化将不可用如果你使用getInput/OutputBuffers()。注意：不要在同一时间混用buffers和buffer arrays。特别地，
+要么紧接着start()方法直接调用getInput/OutputBuffers，要么在出队输出buffer返回INFO_OUTPUT_FORMAT_CHANGED时调用。
+	同步处理使用buffer arrays，在api20及之前，输入/输出buffers集被ByteBuffer数组表示。在成功调用start()方法之后，通过getInput/OutputBuffers取回buffer数组。使用
+buffer的ID映射buffer。注意，buffer数组的长度和系统使用输入/输出buffers的个数没有内在相关性，尽管buffer数组的长度提供了一个上限。
+
+eos的处理
+	当你到达输入数据的末尾，你必须在queueInputBuffer时使用BUFFER_FLAG_END_OF_STREAM标记。你可以在最后一个合法输入buffer时这么做或者提交额外空的输入buffer。如果
+使用额外空的输入buffer，时间戳参数会被忽略。codec会持续返回输出buffer直到它发射eos信号通过dequeueOutputBuffer返回并设置给MediaCodec.BufferInfo的标记或者
+onOutputBufferAvailable回调。这些会被设置在最后一个合法输出buffer，或者最后一个合法输出buffer之后的空buffer。空输出buffer的时间戳应该被忽略。不要提交额外的输入
+buffer在eos信号之后，除非codec处于flushed、stopped状态或者重新启动。
+
+使用输出Surface
+	使用输出Surface处理数据几乎和使用ByteBuffer方式一样；然而，输出buffers将不可存取，并为null。即getOutputBuffer/Image(int)将返回null，getOutputBuffers()将返回
+只包含null的数组。当使用输出Surface，你可以选择是否渲染每一个输出buffer到Surface上。你有三种选择：
+1：不要渲染buffer：调用releaseOutputBuffer(bufferId, false)。
+2：使用默认时间戳渲染buffer：调用releaseOutputBuffer(bufferId, true)。
+3：使用指定时间戳渲染buffer：调用releaseOutputBuffer(bufferId，timestamp)。
+从api23之后，默认时间戳
 
