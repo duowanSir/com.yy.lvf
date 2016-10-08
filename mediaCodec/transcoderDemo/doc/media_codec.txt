@@ -103,5 +103,45 @@ buffer在eos信号之后，除非codec处于flushed、stopped状态或者重新�
 1：不要渲染buffer：调用releaseOutputBuffer(bufferId, false)。
 2：使用默认时间戳渲染buffer：调用releaseOutputBuffer(bufferId, true)。
 3：使用指定时间戳渲染buffer：调用releaseOutputBuffer(bufferId，timestamp)。
-从api23之后，默认时间戳
+从api23之后，默认时间戳就是buffer的的presentation timestamp（转化成纳秒）。在这之前没有定义过。还是在api23之后，你能动态的改变输出Surface通过setOutputSurface。
+
+渲染到surface时的转换
+	如果codec被配置成Surface方式，任何裁剪矩形（crop rectangle），旋转（rotation）和视频缩放模式（video scaling mode）会自动被应用和一个异常：api23发布之前，
+软解码器在渲染至Surface的时候可能还没有应用角度。不幸的是，没有办法可以认出软解码器，或者--------。这里也有一些注意事项。需要注意的是像素宽高比
+（pixel aspect ratio）在渲染至Surface的时候没有被考虑。这意味着如果你使用VIDEO_SCALING_MODE_SCALE_TO_FIT模式，你必须对输出Surface进行定位以确保它最终显示正确
+的宽高比。反过来，你可以仅仅使用VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING模式让内容显示像素宽高比是1:1。还需要注意的是api24发布，
+VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING模式在视频旋转90度或270度时可能无法正确工作。当设置了视频所方面模式（video scaling mode），要注意每次输出buffers
+改变时要重新设置它。自从INFO_OUTPUT_BUFFERS_CHANGE事件过期，你可以在每一次输出格式改变时重新设置。
+
+使用输入surface
+	当使用输入surface时，这里没有可存取的输入buffers，因为buffers都通过surface被自动传送给codec。调用dequeueInputBuffer会抛出IllegalStateException，
+getInputBuffers会返回一定不能写入的虚ByteBuffer数组。调用callSignalEndOfInputStream()示意eos。在这个调用之后输入surface将立即停止向codec提交数据。
+
+3、滑动和自适应播放支持
+	视频解码器（一般来说就是消费压缩视频数据的codec）是否支持并配置为自适应播放对滑动播放和格式变化表现不同。你可以通过
+CodecCapabilities.isFeatureSupported(String)来检查codec是否支持自适应播放。视频解码器的自适应播放只有在你配置codec解码渲染至surface的时候激活。
+	3.1、流边界和关键帧
+		start()或者flush()之后的输入数据开启合适的流边界非常重要：第一帧必须是关键帧。关键帧可以只依赖自己被完全解码（对绝大多数codecs而言是I-frame）,并且关键帧
+之后的帧不会引用此关键帧之前的帧。下表为各种视频格式的合适关键帧作了总结。
+	3.2、给不支持自适应播放的解码器（包含不解码渲染至surface情况）
+		为了开始解码和之前提交的数据不相邻的数据（即滑动播放），你必须flush解码器。因为flush之后所有输出buffers会立即被撤回，你可能会想要在你调用flush之前先示意
+然后再等待eos。flush之后的输入数据开启的流边界/关键帧非常重要。注意：被提交数据的格式在flush之后不得改变；flush()不支持格式中断；如果中断，需要
+stop()-configure(...)-start()完整周期走一遍。同样需要注意：start()之后太快flush——通常，在第一个输出buffer或者第一个输出格式改变被收到之前——你需要重新提交
+codec-specific-data给codec。codec-specific-data章节有更多信息。
+	3.3、给支持自适应播放并配置为自适应播放的解码器
+		为了开始解码和之前提交的数据不相邻的数据（即滑动播放），你不需要flush解码器；但是，中断之后的输入数据必须在合适的流边界/关键帧处开始。对于某些视频格式——
+h.264，h.265，vp8和vp9——改变图像大小和配置中间流是可能的。为了这个你必须将全部新的codec-specific配置数据和关键帧数据打包到单独一个buffer（包含任何开始码），并作为
+一个常规输入buffer提交它。在图像尺寸改变之后且在任何新尺寸帧返回之前，你将会从dequeueOutputBuffer或者onOutputFormatChange回调接收到INFO_OUTPUT_FORMAT_CHANGE返回值。
+注意：正如codec-specific-data那种情况，应当留意当你改变图像尺寸之后立即调用flush()。如果你没有收到对图像尺寸改变的确认，你需要重复请求新的图像尺寸。
+
+4、错误处理
+	createByCodecName和createDecoder/EncoderByType工厂方法失败时会抛出IOException，你必须catch住它或者声明抛给上层。MediaCodec的方法会抛出IllegalStateException当
+当前codec状态不允许的方法被调用时；一般，这是因为不正确的api用法。涉及到安全buffers的方法可能会抛出MediaCodec.CryptoException，该异常可以从getErrorCode()中获取更
+多信息。内部codec错误以MediaCodec.CodecException形式呈现，这种异常可能是因为媒体内容有误，硬件失败，资源衰竭，以此类推，即使应用正确的使用了api。当抛出
+MediaCodec.CodecException时，推荐的做法是调用isRecoverable()和isTransient()：
+	1、可恢复性错误：如果isRecoverable()返回true，接着调用stop()，configure(...)和start()来恢复。
+	2、暂时性错误：如果isTransient()返回true，资源可能暂时不可用，或者稍后再试。
+	3、致命性错误：如果以上两个方法在同一时间都返回false，则异常代表致命性错误，需要reset()然后release()。
+		
+
 
