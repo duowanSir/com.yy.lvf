@@ -4,13 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicReference;
-
+import android.annotation.SuppressLint;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
+import android.media.MediaCodec.BufferInfo;
+import android.media.MediaCodec.CodecException;
 import android.media.MediaMuxer.OutputFormat;
 import android.util.Log;
 import android.view.Surface;
@@ -51,6 +53,29 @@ public class VideoTranscodeCore {
 
 	private int mInputVideoTrack;
 	private int mInputAudioTrack;
+	
+	@SuppressLint("NewApi")
+	private MediaCodec.Callback mAudioDecoderCb = new MediaCodec.Callback() {
+		
+		@Override
+		public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
+		}
+		
+		@Override
+		public void onOutputBufferAvailable(MediaCodec codec, int index, BufferInfo info) {
+		}
+		
+		@Override
+		public void onInputBufferAvailable(MediaCodec codec, int index) {
+		}
+		
+		@Override
+		public void onError(MediaCodec codec, CodecException e) {
+		}
+	};
+	private MediaCodec.Callback mAudioEncoderCb;
+	private MediaCodec.Callback mVideoDecoderCb;
+	private MediaCodec.Callback mVideoEncoderCb;
 
 	// private VideoTranscodeCore() {
 	// }
@@ -437,6 +462,10 @@ public class VideoTranscodeCore {
 				}
 			}
 		}
+	}
+	
+	public void asyncDoExtractDecodeEncodeMux() {
+		
 	}
 
 	public void transcode() {
