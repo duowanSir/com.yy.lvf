@@ -46,8 +46,7 @@ createDecoder/EncoderByType(String)，然而，这种方法不能注入功能，
 	创建安全解码器，在api20及之前，安全codec可能不会在MediaCodecList中列举出来，但是可能仍然能在系统上获取到。系统上存在的安全codec只能使用名字才能初始化，
 通过在正常codec名字后面添加“.secure”（所有安全codec的名字必须以“.secure”结尾），如果当前系统不存在安全codec，createByCodecName(String)将抛出IOException。在
 api21之前，你需要使用Feature_SecurePlayback来创建一个安全解码器。
-
-初始化
+4、初始化
 	创建完codec之后，你可以使用setCallback如果你想异步处理数据，然后用指定的MediaFormat来配置codec，此时正是你为视频生产者指定输出Surface的时候——产生原始
 视频数据的codec（例如：视频解码器），此时也正是你为安全codecs设置解密参数的时候（见MediaCrypto）。最后，因为一些codecs能够在多种模式下运行，你必须指定你需
 要它作为一个编码器还是解码器。api21之后，你能够查询结果的输入、输出MediaFormat在configured状态，你能够用这去验证配置的结果在启动codec之前，例如color format。
@@ -64,8 +63,7 @@ codec-specific数据，你可以根据MediaFormat的需要指定若干顺序正�
 codec运行）。
 	编码器（或者说产生压缩数据的codecs）将产生并返回codec-specific数据，在其它合法buffer返回之前并标记成BUFFER_FLAG_CODEC_CONFIG，包含codec-specific数据的
 buffers没有有意义的时间戳。
-
-数据处理
+5、数据处理
 	每个codec持有一系列输入/输出buffers，通过buffer下角标引用它们，在成功调用start()方法之后，客户端既不也不“拥有”输入/输出buffers。在同步模式下，调用
 dequeueInput/OutputBuffer(...)从codec获取输入或输出buffer；在异步模式下，你会自动获取可用buffers通过MediaCodec.Callback.onInput/OutputBufferAvailable(...)
 回调。
@@ -74,42 +72,41 @@ codec-specific数据）。codec接下来会返回一个只读的输出buffer通�
 数据被处理之后，调用releaseOutputBuffer方法将buffer释放给codec。当你不需要立即重新提交或释放buffers给回到codec时，持有输入或者输出buffer会停滞codec，并且
 这种现象和设备有关。特别地，codec可能会延迟产生输出buffer直到所有在外的buffers被重新提交或释放回来，因此，尽量不要持有可获取的buffers。api21及之后你可以
 使用异步方式处理数据。
-	异步处理使用buffers，在api21之后，首选异步处理数据的方法，通过在调用configure()方法之前设置一个回调。异步模式将状态转换变得轻量级，因为你必须在
+	5-1、异步处理使用buffers
+		api21及之后，首选异步处理数据的方法，通过在调用configure()方法之前设置一个回调。异步模式将状态转换变得轻量级，因为你必须在
 flush()之后调用start()以将codec转换到running子状态并开始接收输入buffers。同样地，在初始化codec之后调用start()将直接转换codec到running子状态并开始通过回调
 传递可获取的输入buffers（典型的异步代码）。
-	同步处理使用buffers，从api21之后，你应该通过getInput/OutputBuffer(int)或者getInput/OutputImage(int)来取到输入/输出buffers，即使是在同步模式下使用codec，
+	5-2、同步处理使用buffers
+		api21及之后，你应该通过getInput/OutputBuffer(int)或者getInput/OutputImage(int)来取到输入/输出buffers，即使是在同步模式下使用codec，
 这种方式容许某些框架上的改进，例如，当处理动态内容时。这种优化将不可用如果你使用getInput/OutputBuffers()。注意：不要在同一时间混用buffers和buffer arrays。特别地，
 要么紧接着start()方法直接调用getInput/OutputBuffers，要么在出队输出buffer返回INFO_OUTPUT_FORMAT_CHANGED时调用。
-	同步处理使用buffer arrays，在api20及之前，输入/输出buffers集被ByteBuffer数组表示。在成功调用start()方法之后，通过getInput/OutputBuffers取回buffer数组。使用
+	5-3、同步处理使用buffer arrays
+		api20及之前，输入/输出buffers集被ByteBuffer数组表示。在成功调用start()方法之后，通过getInput/OutputBuffers取回buffer数组。使用
 buffer的ID映射buffer。注意，buffer数组的长度和系统使用输入/输出buffers的个数没有内在相关性，尽管buffer数组的长度提供了一个上限。
-
-eos的处理
-	当你到达输入数据的末尾，你必须在queueInputBuffer时使用BUFFER_FLAG_END_OF_STREAM标记。你可以在最后一个合法输入buffer时这么做或者提交额外空的输入buffer。如果
+	5-4、eos的处理
+		当你到达输入数据的末尾，你必须在queueInputBuffer时使用BUFFER_FLAG_END_OF_STREAM标记。你可以在最后一个合法输入buffer时这么做或者提交额外空的输入buffer。如果
 使用额外空的输入buffer，时间戳参数会被忽略。codec会持续返回输出buffer直到它发射eos信号通过dequeueOutputBuffer返回并设置给MediaCodec.BufferInfo的标记或者
 onOutputBufferAvailable回调。这些会被设置在最后一个合法输出buffer，或者最后一个合法输出buffer之后的空buffer。空输出buffer的时间戳应该被忽略。不要提交额外的输入
 buffer在eos信号之后，除非codec处于flushed、stopped状态或者重新启动。
-
-使用输出Surface
-	使用输出Surface处理数据几乎和使用ByteBuffer方式一样；然而，输出buffers将不可存取，并为null。即getOutputBuffer/Image(int)将返回null，getOutputBuffers()将返回
+	5-5、使用输出Surface
+		使用输出Surface处理数据几乎和使用ByteBuffer方式一样；然而，输出buffers将不可存取，并为null。即getOutputBuffer/Image(int)将返回null，getOutputBuffers()将返回
 只包含null的数组。当使用输出Surface，你可以选择是否渲染每一个输出buffer到Surface上。你有三种选择：
 1：不要渲染buffer：调用releaseOutputBuffer(bufferId, false)。
 2：使用默认时间戳渲染buffer：调用releaseOutputBuffer(bufferId, true)。
 3：使用指定时间戳渲染buffer：调用releaseOutputBuffer(bufferId，timestamp)。
 从api23之后，默认时间戳就是buffer的的presentation timestamp（转化成纳秒）。在这之前没有定义过。还是在api23之后，你能动态的改变输出Surface通过setOutputSurface。
-
-渲染到surface时的转换
-	如果codec被配置成Surface方式，任何裁剪矩形（crop rectangle），旋转（rotation）和视频缩放模式（video scaling mode）会自动被应用和一个异常：api23发布之前，
+	5-6、渲染到surface时的转换
+		如果codec被配置成Surface方式，任何裁剪矩形（crop rectangle），旋转（rotation）和视频缩放模式（video scaling mode）会自动被应用和一个异常：api23发布之前，
 软解码器在渲染至Surface的时候可能还没有应用角度。不幸的是，没有办法可以认出软解码器，或者--------。这里也有一些注意事项。需要注意的是像素宽高比
 （pixel aspect ratio）在渲染至Surface的时候没有被考虑。这意味着如果你使用VIDEO_SCALING_MODE_SCALE_TO_FIT模式，你必须对输出Surface进行定位以确保它最终显示正确
 的宽高比。反过来，你可以仅仅使用VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING模式让内容显示像素宽高比是1:1。还需要注意的是api24发布，
 VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING模式在视频旋转90度或270度时可能无法正确工作。当设置了视频所方面模式（video scaling mode），要注意每次输出buffers
 改变时要重新设置它。自从INFO_OUTPUT_BUFFERS_CHANGE事件过期，你可以在每一次输出格式改变时重新设置。
-
-使用输入surface
-	当使用输入surface时，这里没有可存取的输入buffers，因为buffers都通过surface被自动传送给codec。调用dequeueInputBuffer会抛出IllegalStateException，
+	5-7、使用输入surface
+		当使用输入surface时，这里没有可存取的输入buffers，因为buffers都通过surface被自动传送给codec。调用dequeueInputBuffer会抛出IllegalStateException，
 getInputBuffers会返回一定不能写入的虚ByteBuffer数组。调用callSignalEndOfInputStream()示意eos。在这个调用之后输入surface将立即停止向codec提交数据。
 
-3、滑动和自适应播放支持
+6、滑动和自适应播放支持
 	视频解码器（一般来说就是消费压缩视频数据的codec）是否支持并配置为自适应播放对滑动播放和格式变化表现不同。你可以通过
 CodecCapabilities.isFeatureSupported(String)来检查codec是否支持自适应播放。视频解码器的自适应播放只有在你配置codec解码渲染至surface的时候激活。
 	3.1、流边界和关键帧
@@ -126,7 +123,7 @@ h.264，h.265，vp8和vp9——改变图像大小和配置中间流是可能的�
 一个常规输入buffer提交它。在图像尺寸改变之后且在任何新尺寸帧返回之前，你将会从dequeueOutputBuffer或者onOutputFormatChange回调接收到INFO_OUTPUT_FORMAT_CHANGE返回值。
 注意：正如codec-specific-data那种情况，应当留意当你改变图像尺寸之后立即调用flush()。如果你没有收到对图像尺寸改变的确认，你需要重复请求新的图像尺寸。
 
-4、错误处理
+7、错误处理
 	createByCodecName和createDecoder/EncoderByType工厂方法失败时会抛出IOException，你必须catch住它或者声明抛给上层。MediaCodec的方法会抛出IllegalStateException当
 当前codec状态不允许的方法被调用时；一般，这是因为不正确的api用法。涉及到安全buffers的方法可能会抛出MediaCodec.CryptoException，该异常可以从getErrorCode()中获取更
 多信息。内部codec错误以MediaCodec.CodecException形式呈现，这种异常可能是因为媒体内容有误，硬件失败，资源衰竭，以此类推，即使应用正确的使用了api。当抛出
@@ -134,6 +131,3 @@ MediaCodec.CodecException时，推荐的做法是调用isRecoverable()和isTrans
 	1、可恢复性错误：如果isRecoverable()返回true，接着调用stop()，configure(...)和start()来恢复。
 	2、暂时性错误：如果isTransient()返回true，资源可能暂时不可用，或者稍后再试。
 	3、致命性错误：如果以上两个方法在同一时间都返回false，则异常代表致命性错误，需要reset()然后release()。
-		
-
-
