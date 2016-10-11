@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="VideoBitRateRulerView">
+        <attr name="min_value" format="integer" />
+        <attr name="max_value" format="integer" />
+        <attr name="min_unit" format="integer" />
+        
+        
+        <attr name="indicator_height" format="float" />
+        <attr name="min_unit_width" format="float" />
+        <attr name="min_unit_line_witdh" format="float" />
+        <attr name="min_unit_line_height" format="float" />
+        <attr name="min_unit_line_color" format="color" />
+        <attr name="mid_unit_line_witdh" format="float" />
+        <attr name="mid_unit_line_height" format="float" />
+        <attr name="mid_unit_line_color" format="color" />
+        <attr name="max_unit_line_witdh" format="float" />
+        <attr name="max_unit_line_height" format="float" />
+        <attr name="max_unit_line_color" format="color" />
+    </declare-styleable>
+
+</resources>
