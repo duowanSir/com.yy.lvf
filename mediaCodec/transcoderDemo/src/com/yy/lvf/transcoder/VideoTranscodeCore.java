@@ -16,8 +16,6 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.media.MediaMuxer.OutputFormat;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
@@ -143,15 +141,20 @@ public class VideoTranscodeCore {
 				if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
 					codec.releaseOutputBuffer(index, false);
 				} else {
-					ByteBuffer output = codec.getOutputBuffer(index);
-					output.position(info.offset)
-						.limit(info.offset + info.size);
-					mMuxer.writeSampleData(mAudioMuxerTrack, output, info);
+					if (info.size > 0) {
+						ByteBuffer output = codec.getOutputBuffer(index);
+						output.position(info.offset)
+							.limit(info.offset + info.size);
+						mMuxer.writeSampleData(mAudioMuxerTrack, output, info);
+					}
 					if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 						if (VERBOSE) {
 							Log.d(TAG, "audio encoder: done");
 						}
 						mAudioEncodeDone = true;
+					}
+					if (mAudioEncodeDone && mVideoEncodeDone) {
+						release();
 					}
 				}
 			}
@@ -172,7 +175,7 @@ public class VideoTranscodeCore {
 					ByteBuffer encoderInput = codec.getInputBuffer(index);
 					ByteBuffer decoderOutput = codec.getOutputBuffer(mAudioPendingEncodeIndex).duplicate();
 					decoderOutput.position(mAudioDecoderBufferInfo.offset)
-						.limit(mAudioDecoderBufferInfo.size);
+						.limit(mAudioDecoderBufferInfo.offset + mAudioDecoderBufferInfo.size);
 					encoderInput.position(0);
 					encoderInput.put(decoderOutput);
 					codec.queueInputBuffer(index, 0, mAudioDecoderBufferInfo.size, mAudioDecoderBufferInfo.presentationTimeUs, mAudioDecoderBufferInfo.flags);
@@ -266,6 +269,9 @@ public class VideoTranscodeCore {
 					}
 					if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 						mVideoEncodeDone = true;
+					}
+					if (mAudioEncodeDone && mVideoEncodeDone) {
+						release();
 					}
 				}
 			}
@@ -467,6 +473,31 @@ public class VideoTranscodeCore {
 			return false;
 		}
 		return true;
+	}
+
+	private void release() {
+		if (mAudioExtractor != null) {
+			mAudioExtractor.release();
+		}
+		if (mVideoExtractor != null) {
+			mVideoExtractor.release();
+		}
+		if (mAudioDecoder != null) {
+			mAudioDecoder.release();
+		}
+		if (mVideoDecoder != null) {
+			mVideoDecoder.release();
+		}
+		if (mAudioEncoder != null) {
+			mAudioEncoder.release();
+		}
+		if (mVideoEncoder != null) {
+			mVideoEncoder.release();
+		}
+		if (mMuxer != null) {
+			mMuxer.stop();
+			mMuxer.release();
+		}
 	}
 
 	public void syncDoExtractDecodeEncodeMux() {
