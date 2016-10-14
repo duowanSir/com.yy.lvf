@@ -50,6 +50,15 @@ public class CustomUnitRulerView extends View {
 	private Paint mIndicatorPaint;
 
 	private boolean mNeedRounding = true;
+	private float mXAxisPreCoordinate = 0;
+	private float mXAxisSlideDistance = 0;
+	private Callback mCb;
+
+	public interface Callback {
+		void slide(int value);
+
+		void slideCompleted(int value);
+	}
 
 	public CustomUnitRulerView(Context context) {
 		super(context);
@@ -70,9 +79,9 @@ public class CustomUnitRulerView extends View {
 		setClickable(true);
 		TypedArray a = null;
 		dp1 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, context.getResources().getDisplayMetrics());
-		mMinUnit = 1;
+		mMinUnit = 10;
 		mMinValue = 0;
-		mMaxValue = 100;
+		mMaxValue = 1000;
 		mMultiple = 10;
 
 		mIndicatorHeight = dp1 * 10;
@@ -136,9 +145,17 @@ public class CustomUnitRulerView extends View {
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 		setMeasuredDimension(View.MeasureSpec.getSize(widthMeasureSpec), measureHeight(heightMeasureSpec));
 		// 依据大整刻度居中原则计算刻度起始坐标
-		int leftValue = mMinValue - mMinValue % mMultiple;
-		int rightValue = mMaxValue + mMultiple - mMaxValue % mMultiple;
+		int maxUnit = mMultiple * mMinUnit;
+		int leftValue = mMinValue - mMinValue % maxUnit;
+		int i = mMaxValue % maxUnit;
+		int rightValue;
+		if (i == 0) {
+			rightValue = mMaxValue;
+		} else {
+			rightValue = mMaxValue - i + mMinUnit;
+		}
 		int midValue = (leftValue + rightValue) / 2;
+
 		if (VERBOSE) {
 			Log.d(TAG, "value: left = " + leftValue + ", mid = " + midValue + ", right = " + rightValue);
 		}
@@ -153,17 +170,14 @@ public class CustomUnitRulerView extends View {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		slideCalculate();
 		drawRulerScale(canvas);
 		drawIndicator(canvas);
-
 	}
-
-	private float mXAxisPreCoordinate = 0;
-	private float mXAxisSlideDistance = 0;
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		float width;
+		int value;
 		switch (event.getAction()) {
 		case MotionEvent.ACTION_DOWN:
 			mNeedRounding = false;
@@ -172,16 +186,47 @@ public class CustomUnitRulerView extends View {
 		case MotionEvent.ACTION_MOVE:
 			mXAxisSlideDistance = event.getX() - mXAxisPreCoordinate;
 			mXAxisPreCoordinate = event.getX();
+			width = slideCalculate();
 			invalidate();
+			if (mCb != null) {
+				value = (int) (width / mMinUnitWidth * mMinUnit);
+				if (value <= mMinValue) {
+					value = mMinValue;
+				} else if (value >= mMaxValue) {
+					value = mMaxValue;
+				}
+				mCb.slide(value);
+			}
 			break;
 		case MotionEvent.ACTION_UP:
 			mNeedRounding = true;
+			width = slideCalculate();
 			invalidate();
+			if (mCb != null) {
+				value = (int) (width / mMinUnitWidth * mMinUnit);
+				if (value <= mMinValue) {
+					value = mMinValue;
+				} else if (value >= mMaxValue) {
+					value = mMaxValue;
+				}
+				mCb.slide(value);
+			}
 			break;
 		default:
 			break;
 		}
 		return super.onTouchEvent(event);
+	}
+
+	public void setCallback(Callback cb) {
+		mCb = cb;
+	}
+	
+	public void setBoundary(int min, int max) {
+		mMinValue = min;
+		mMaxValue = max;
+		requestLayout();
+		invalidate();
 	}
 
 	private int measureHeight(int heightMeasureSpec) {
@@ -228,6 +273,7 @@ public class CustomUnitRulerView extends View {
 		float stx, sty, spx, spy;
 		spy = getMeasuredHeight() - mMaxUnitLineHeight;
 		sty = spy - mIndicatorHeight;
+
 		stx = spx = getMeasuredWidth() / 2;
 		canvas.drawLine(stx, sty, spx, spy, mIndicatorPaint);
 	}
@@ -235,10 +281,10 @@ public class CustomUnitRulerView extends View {
 	/**
 	 * @param xAxisSlideDistance 终止 - 起始
 	 */
-	private void slideCalculate() {
+	private float slideCalculate() {
+		float width = getMeasuredWidth() / 2 - mXAxisStartCoordinate;// 指示器和起始点之间的距离
 		if (mNeedRounding && mXAxisSlideDistance != 0) {
 			boolean isPositive = false;
-			float width = getMeasuredWidth() / 2 - mXAxisStartCoordinate;// 指示器和起始点之间的距离
 			if (VERBOSE) {
 				Log.d(TAG, "start x = " + mXAxisStartCoordinate + ", indicator x = " + getMeasuredWidth() / 2);
 			}
@@ -261,16 +307,16 @@ public class CustomUnitRulerView extends View {
 				width = right;
 			}
 			if (!isPositive) {
-				mXAxisStartCoordinate = getMeasuredWidth() / 2 + width;
-			} else {
-				mXAxisStartCoordinate = getMeasuredWidth() / 2 - width;
+				width = -width;
 			}
+			mXAxisStartCoordinate = getMeasuredWidth() / 2 - width;
 			if (VERBOSE) {
-				Log.d(TAG, "start x = " + mXAxisStartCoordinate + ", indicator x = " + getMeasuredWidth() / 2 + ", left = " +left + ", right = " + right + ", width = " + width);
+				Log.d(TAG, "start x = " + mXAxisStartCoordinate + ", indicator x = " + getMeasuredWidth() / 2 + ", left = " + left + ", right = " + right + ", width = " + width);
 			}
 		} else {
 			mXAxisStartCoordinate += mXAxisSlideDistance;
 		}
+		return width;
 	}
 
 }

@@ -8,21 +8,19 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin" >
 
-    <!-- xmlns:ruler="http://schemas.android.com/apk/res/com.yy.lvf.view.CustomUnitRulerView" -->
-
-    <com.yy.lvf.view.CustomUnitRulerView
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:background="#fff"
-        ruler:max_value="123"
-        ruler:min_unit="2"
-        ruler:min_value="10" />
-
     <TextView
+        android:id="@+id/ruler_value_tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="@string/hello_world" />
+        android:layout_gravity="center_horizontal" />
+
+    <com.yy.lvf.view.CustomUnitRulerView
+        android:id="@+id/curv"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        ruler:max_value="500"
+        ruler:min_unit="10"
+        ruler:min_value="0" />
 
     <Button
         android:id="@+id/select_video_button"
