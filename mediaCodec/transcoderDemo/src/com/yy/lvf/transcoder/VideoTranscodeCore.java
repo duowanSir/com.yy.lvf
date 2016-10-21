@@ -76,8 +76,8 @@ public class VideoTranscodeCore {
     private int mInputAudioTrack;
 
     // 异步方式
-    private int mAudioPendingEncodeIndex = -1;
-    private BufferInfo mAudioDecoderBufferInfo = null;
+//    private int mAudioPendingEncodeIndex = -1;
+//    private BufferInfo mAudioDecoderBufferInfo = null;
     private MediaFormat mAudioEncoderOutputFormat = null;
     private int mAudioMuxerTrack = -1;
     private boolean mAudioEncodeDone = false;
@@ -89,8 +89,6 @@ public class VideoTranscodeCore {
     private HandlerThread mAudioEncodeThread;
     private HandlerThread mVideoDecodeThread;
     private HandlerThread mVideoEncodeThread;
-    
-    
     private BlockingQueue<Integer> mAudioDecoderInputQueue = new LinkedBlockingQueue<Integer>();
     private BlockingQueue<OutputWrapper> mAudioDecoderOutputQueue = new LinkedBlockingQueue<OutputWrapper>();
     private BlockingQueue<Integer> mAudioEncoderInputQueue = new LinkedBlockingQueue<Integer>();
@@ -102,49 +100,33 @@ public class VideoTranscodeCore {
 	@Override
 	public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
 	    if (VERBOSE) {
-		Log.d(TAG, "audio decoder: format changed " + format);
+		Log.d(TAG, "audioDecoder: format = " + format.getString(MediaFormat.KEY_MIME));
 	    }
 	}
 
 	@Override
 	public void onOutputBufferAvailable(MediaCodec codec, int index, BufferInfo info) {
 	    if (VERBOSE) {
-		Log.d(TAG, "audio decoder: output buffer index = " + index + ", info = [" + info.flags + ", " + info.offset + ", " + info.presentationTimeUs + ", " + info.size + "]");
+		Log.d(TAG, "audioDecoder: index = " + index + ", info = [" + info.flags + ", " + info.offset + ", " + info.presentationTimeUs + ", " + info.size + "]");
 	    }
 	    synchronized (mAudioDecoderOutputQueue) {
-		mAudioDecoderOutputQueue.add(new OutputWrapper(index, info));
+		mAudioDecoderOutputQueue.offer(new OutputWrapper(index, info));
 	    }
-//	    if (mAudioPendingEncodeIndex == -1) {
-//		mAudioPendingEncodeIndex = index;
-//		mAudioDecoderBufferInfo = info;
-//	    }
 	}
 
 	@Override
 	public void onInputBufferAvailable(MediaCodec codec, int index) {
-	    synchronized (mAudioDecoderInputQueue) {
-		mAudioDecoderInputQueue.add(index);
+	    if (VERBOSE) {
+		Log.d(TAG, "audioDecoder: index = " + index);
 	    }
-//	    ByteBuffer input = codec.getInputBuffer(index);
-//	    int size = mAudioExtractor.readSampleData(input, 0);
-//	    boolean extractDone = false;
-//	    if (size == -1) {
-//		extractDone = true;
-//	    } else {
-//		mAudioDecoder.queueInputBuffer(index, 0, size, mAudioExtractor.getSampleTime(), mAudioExtractor.getSampleFlags());
-//		extractDone = !mAudioExtractor.advance();
-//	    }
-//	    if (extractDone) {
-//		mAudioDecoder.queueInputBuffer(index, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-//		if (VERBOSE) {
-//		    Log.d(TAG, "extractor: eos");
-//		}
-//	    }
+	    synchronized (mAudioDecoderInputQueue) {
+		mAudioDecoderInputQueue.offer(index);
+	    }
 	}
 
 	@Override
 	public void onError(MediaCodec codec, CodecException e) {
-	    e.printStackTrace();
+	    throw e;
 	}
     };
     @SuppressLint("NewApi")
@@ -152,6 +134,9 @@ public class VideoTranscodeCore {
 
 	@Override
 	public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
+	    if (VERBOSE) {
+		Log.d(TAG, "audioEncoder: format = " + format.getString(MediaFormat.KEY_MIME));
+	    }
 	    if (mAudioEncoderOutputFormat != null) {
 		if (VERBOSE) {
 		    Log.d(TAG, "audio encoder: track format change twice");
