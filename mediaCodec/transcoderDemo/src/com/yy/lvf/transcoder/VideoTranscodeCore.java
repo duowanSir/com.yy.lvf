@@ -3,10 +3,12 @@ package com.yy.lvf.transcoder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -28,7 +30,10 @@ import android.view.Surface;
 
 import com.yy.lvf.InputSurface;
 import com.yy.lvf.OutputSurface;
-
+/**
+ * 1、使用Lock代替synchronized关键字
+ * 2、多个线程访问共享变量所经历的锁路径应该是相同的
+ * 3、为了避免死锁，多个线程对多个对象加锁的顺序应该相同。*/
 public class VideoTranscodeCore {
 	public class OutputWrapper {
 		public int			mIndex;
@@ -81,43 +86,60 @@ public class VideoTranscodeCore {
 	private MediaFormat						mVideoEncoderOutputFormat	= null;
 	private int								mVideoMuxerTrack			= -1;
 	private boolean							mVideoEncodeDone			= false;
+
 	private boolean							mMuxerStarted				= false;
+
 	private HandlerThread					mAudioDecodeThread;
 	private HandlerThread					mAudioEncodeThread;
 	private HandlerThread					mVideoDecodeThread;
 	private HandlerThread					mVideoEncodeThread;
+
+	private final Lock						mAudioDecoderQueueLock		= new ReentrantLock();
+	private final Lock						mAudioEncoderQueueLock		= new ReentrantLock();
+	private final Lock						mMuxerLock					= new ReentrantLock();
+
 	private BlockingQueue<Integer>			mAudioDecoderInputQueue		= new LinkedBlockingQueue<Integer>();
 	private BlockingQueue<OutputWrapper>	mAudioDecoderOutputQueue	= new LinkedBlockingQueue<OutputWrapper>();
 	private BlockingQueue<Integer>			mAudioEncoderInputQueue		= new LinkedBlockingQueue<Integer>();
 	private BlockingQueue<OutputWrapper>	mAudioEncoderOutputQueue	= new LinkedBlockingQueue<OutputWrapper>();
 
 	@SuppressLint("NewApi")
-	public MediaCodec.Callback				mAudioDecoderCb				= new MediaCodec.Callback() {
+	public MediaCodec.Callback				mAudioDecoderCallback		= new MediaCodec.Callback() {
 
 																			@Override
 																			public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
-																				if (VERBOSE) {
-																					Log.d(TAG, "audioDecoder: format = " + format.getString(MediaFormat.KEY_MIME));
-																				}
+																				logFormat("audioDecoder", format);
 																			}
 
 																			@Override
 																			public void onOutputBufferAvailable(MediaCodec codec, int index, BufferInfo info) {
-																				if (VERBOSE) {
-																					Log.d(TAG, "audioDecoder: index = " + index + ", info = [" + info.flags + ", " + info.offset + ", " + info.presentationTimeUs + ", " + info.size + "]");
-																				}
-																				synchronized (mAudioDecoderOutputQueue) {
-																					mAudioDecoderOutputQueue.offer(new OutputWrapper(index, info));
+																				logOutput("audioDecoder", index, info);
+																				try {
+																					if (mAudioDecoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+																						mAudioDecoderOutputQueue.offer(new OutputWrapper(index, info));
+																					} else {
+																						logLock(mAudioDecoderQueueLock);
+																					}
+																				} catch (InterruptedException e) {
+																					e.printStackTrace();
+																				} finally {
+																					mAudioDecoderQueueLock.unlock();
 																				}
 																			}
 
 																			@Override
 																			public void onInputBufferAvailable(MediaCodec codec, int index) {
-																				if (VERBOSE) {
-																					Log.d(TAG, "audioDecoder: index = " + index);
-																				}
-																				synchronized (mAudioDecoderInputQueue) {
-																					mAudioDecoderInputQueue.offer(index);
+																				logInput("audioDecoder", index);
+																				try {
+																					if (mAudioDecoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+																						mAudioDecoderInputQueue.offer(index);
+																					} else {
+																						logLock(mAudioDecoderQueueLock);
+																					}
+																				} catch (InterruptedException e) {
+																					e.printStackTrace();
+																				} finally {
+																					mAudioDecoderQueueLock.unlock();
 																				}
 																			}
 
@@ -127,24 +149,30 @@ public class VideoTranscodeCore {
 																			}
 																		};
 	@SuppressLint("NewApi")
-	private MediaCodec.Callback				mAudioEncoderCb				= new MediaCodec.Callback() {
+	private MediaCodec.Callback				mAudioEncoderCallback		= new MediaCodec.Callback() {
 
 																			@Override
 																			public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
-																				if (VERBOSE) {
-																					Log.d(TAG, "audioEncoder: format = " + format.getString(MediaFormat.KEY_MIME));
-																				}
+																				logFormat("audioEncoder", format);
 																				if (mAudioEncoderOutputFormat != null) {
 																					if (VERBOSE) {
 																						throw new RuntimeException("audioEncoder: format change twice");
 																					}
 																				} else {
-//																					mAudioEncoderOutputFormat = format;
-//																					mAudioMuxerTrack = mMuxer.addTrack(mAudioEncoderOutputFormat);
-//																					if (!mMuxerStarted && (mVideoMuxerTrack != -1 || !mNeedTranscodeVideo)) {
-//																						mMuxer.start();
-//																						mMuxerStarted = true;
-//																					}
+																					mAudioEncoderOutputFormat = format;
+																					try {
+																						if (mMuxerLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+																							mAudioMuxerTrack = mMuxer.addTrack(mAudioEncoderOutputFormat);
+																							if (!mMuxerStarted && (mVideoMuxerTrack != -1 || !mNeedTranscodeVideo)) {
+																								mMuxer.start();
+																								mMuxerStarted = true;
+																							}
+																						} else {
+																							
+																						}
+																					} catch (InterruptedException e) {
+																						e.printStackTrace()
+																					}
 																				}
 																			}
 
@@ -274,7 +302,7 @@ public class VideoTranscodeCore {
 																			}
 																		};
 	private Callback						mCallback;
-	private long							mAudioTrackAndVideoTrackTimeUs;											// 总时间
+	private long							mAudioTrackAndVideoTrackTimeUs;										// 总时间
 
 	public interface Callback {
 		void transcoding(final int progress);// 百分比分子整数
@@ -695,7 +723,7 @@ public class VideoTranscodeCore {
 		}
 	}
 
-	@TargetApi(21)
+	@TargetApi(23)
 	private boolean asyncInit() {
 		MediaCodecList codecList = new MediaCodecList(MediaCodecList.ALL_CODECS);
 		if (mNeedTranscodeAudio) {
@@ -719,14 +747,14 @@ public class VideoTranscodeCore {
 			if (mAudioDecoder == null) {
 				return false;
 			}
-			mAudioDecoder.setCallback(mAudioDecoderCb, new Handler(mAudioDecodeThread.getLooper()));
+			mAudioDecoder.setCallback(mAudioDecoderCallback, new Handler(mAudioDecodeThread.getLooper()));
 			mAudioDecoder.configure(inputAudioFormat, null, null, 0);
 			MediaFormat outputAudioFormat = createAudioTrackFormat(inputAudioFormat);
 			mAudioEncoder = checkCapabilities(codecList, outputAudioFormat, true);
 			if (mAudioEncoder == null) {
 				return false;
 			}
-			mAudioEncoder.setCallback(mAudioEncoderCb, new Handler(mAudioEncodeThread.getLooper()));
+			mAudioEncoder.setCallback(mAudioEncoderCallback, new Handler(mAudioEncodeThread.getLooper()));
 			mAudioEncoder.configure(outputAudioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 			mAudioDecoder.start();
 			mAudioEncoder.start();
@@ -779,6 +807,7 @@ public class VideoTranscodeCore {
 		return true;
 	}
 
+	@TargetApi(23)
 	private void asyncDoExtractDecodeEncodeMux() {
 		while ((mNeedTranscodeAudio && !mAudioEncodeDone) || (mNeedTranscodeVideo && !mVideoEncodeDone)) {
 			if (mNeedTranscodeAudio) {
@@ -790,6 +819,7 @@ public class VideoTranscodeCore {
 		}
 	}
 
+	@TargetApi(23)
 	public void asyncTranscode() {
 		if (asyncInit()) {
 			try {
@@ -913,6 +943,30 @@ public class VideoTranscodeCore {
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
+		}
+	}
+
+	public static void logLock(Lock lock) {
+		if (VERBOSE) {
+			Log.d(TAG, Thread.currentThread() + " lock " + lock.toString() + " failed");
+		}
+	}
+
+	public static void logInput(String codec, int index) {
+		if (VERBOSE) {
+			Log.d(TAG, codec + ": index = " + index);
+		}
+	}
+
+	public static void logOutput(String codec, int index, BufferInfo info) {
+		if (VERBOSE) {
+			Log.d(TAG, codec + ": index = " + index + ", info = [" + info.flags + ", " + info.offset + ", " + info.presentationTimeUs + ", " + info.size + "]");
+		}
+	}
+
+	public static void logFormat(String codec, MediaFormat format) {
+		if (VERBOSE) {
+			Log.d(TAG, codec + ": format = " + format.getString(MediaFormat.KEY_MIME));
 		}
 	}
 
