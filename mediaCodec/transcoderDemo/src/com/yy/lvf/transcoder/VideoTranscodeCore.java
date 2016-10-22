@@ -30,10 +30,11 @@ import android.view.Surface;
 
 import com.yy.lvf.InputSurface;
 import com.yy.lvf.OutputSurface;
+
 /**
- * 1、使用Lock代替synchronized关键字
- * 2、多个线程访问共享变量所经历的锁路径应该是相同的
- * 3、为了避免死锁，多个线程对多个对象加锁的顺序应该相同。*/
+ * 1、使用Lock代替synchronized关键字 2、多个线程访问共享变量所经历的锁路径应该是相同的
+ * 3、为了避免死锁，多个线程对多个对象加锁的顺序应该相同。
+ */
 public class VideoTranscodeCore {
 	public class OutputWrapper {
 		public int			mIndex;
@@ -160,39 +161,39 @@ public class VideoTranscodeCore {
 																					}
 																				} else {
 																					mAudioEncoderOutputFormat = format;
-																					try {
-																						if (mMuxerLock.tryLock(100, TimeUnit.MILLISECONDS)) {
-																							mAudioMuxerTrack = mMuxer.addTrack(mAudioEncoderOutputFormat);
-																							if (!mMuxerStarted && (mVideoMuxerTrack != -1 || !mNeedTranscodeVideo)) {
-																								mMuxer.start();
-																								mMuxerStarted = true;
-																							}
-																						} else {
-																							
-																						}
-																					} catch (InterruptedException e) {
-																						e.printStackTrace()
-																					}
+																					startMuxer(format, true);
 																				}
 																			}
 
 																			@Override
 																			public void onOutputBufferAvailable(MediaCodec codec, int index, BufferInfo info) {
-																				if (VERBOSE) {
-																					Log.d(TAG, "audioEncoder: index = " + index + ", info = [" + info.flags + ", " + info.offset + ", " + info.presentationTimeUs + ", " + info.size + "]");
-																				}
-																				synchronized (mAudioEncoderOutputQueue) {
-																					mAudioEncoderOutputQueue.offer(new OutputWrapper(index, info));
+																				logOutput("audioEncoder", index, info);
+																				try {
+																					if (mAudioEncoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+																						mAudioEncoderOutputQueue.offer(new OutputWrapper(index, info));
+																					} else {
+																						logLock(mAudioEncoderQueueLock);
+																					}
+																				} catch (Exception e) {
+																					e.printStackTrace();
+																				} finally {
+																					mAudioEncoderQueueLock.unlock();
 																				}
 																			}
 
 																			@Override
 																			public void onInputBufferAvailable(MediaCodec codec, int index) {
-																				if (VERBOSE) {
-																					Log.d(TAG, "audioEncoder: index = " + index);
-																				}
-																				synchronized (mAudioEncoderInputQueue) {
-																					mAudioEncoderInputQueue.offer(index);
+																				logInput("audioEncoder", index);
+																				try {
+																					if (mAudioEncoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+																						mAudioEncoderInputQueue.offer(index);
+																					} else {
+																						logLock(mAudioEncoderQueueLock);
+																					}
+																				} catch (Exception e) {
+																					e.printStackTrace();
+																				} finally {
+																					mAudioEncoderQueueLock.unlock();
 																				}
 																			}
 
@@ -807,13 +808,148 @@ public class VideoTranscodeCore {
 		return true;
 	}
 
+	private void startMuxer(final MediaFormat format, final Boolean isAudioTrack) {
+		try {
+			if (mMuxerLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+				if (!mMuxerStarted) {
+					if (isAudioTrack) {
+						mAudioMuxerTrack = mMuxer.addTrack(format);
+					} else {
+						mVideoMuxerTrack = mMuxer.addTrack(format);
+					}
+					if (!mMuxerStarted && (mAudioMuxerTrack != -1 || !mNeedTranscodeAudio) && (mVideoMuxerTrack != -1 || !mNeedTranscodeVideo)) {
+						mMuxer.start();
+						mMuxerStarted = true;
+					}
+				}
+			} else {
+				logLock(mMuxerLock);
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			mMuxerLock.unlock();
+		}
+	}
+
 	@TargetApi(23)
 	private void asyncDoExtractDecodeEncodeMux() {
 		while ((mNeedTranscodeAudio && !mAudioEncodeDone) || (mNeedTranscodeVideo && !mVideoEncodeDone)) {
 			if (mNeedTranscodeAudio) {
-				Integer index = mAudioDecoderInputQueue.peek();
-				if (index != null) {
-
+				// 提取-解码输入
+				Integer decoderInputIndex = null;
+				try {
+					if (mAudioDecoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+						decoderInputIndex = mAudioDecoderInputQueue.peek();
+						if (decoderInputIndex != null) {
+							decoderInputIndex = mAudioDecoderInputQueue.poll();
+						}
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} finally {
+					mAudioDecoderQueueLock.unlock();
+				}
+				if (decoderInputIndex != null) {
+					ByteBuffer decoderInputBuffer = mAudioDecoder.getInputBuffer(decoderInputIndex);
+					int size = mAudioExtractor.readSampleData(decoderInputBuffer, 0);
+					if (size != -1) {
+						mAudioDecoder.queueInputBuffer(decoderInputIndex, 0, size, mAudioExtractor.getSampleTime(), mAudioExtractor.getSampleFlags());
+						if (!mAudioExtractor.advance()) {
+							if (VERBOSE) {
+								Log.d(TAG, "audioDecoder: done");
+							}
+						}
+					} else {
+						if (VERBOSE) {
+							Log.d(TAG, "audioDecoder: done");
+						}
+					}
+				}
+				// 解码输出-编码输入
+				OutputWrapper decoderOutputWrapper = null;
+				Integer encoderInputIndex = null;
+				try {
+					if (mAudioDecoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+						if (mAudioEncoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+							decoderOutputWrapper = mAudioDecoderOutputQueue.peek();
+							encoderInputIndex = mAudioEncoderInputQueue.peek();
+							if (decoderOutputWrapper != null && encoderInputIndex != null) {
+								decoderOutputWrapper = mAudioDecoderOutputQueue.poll();
+								encoderInputIndex = mAudioEncoderInputQueue.poll();
+							}
+						}
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} finally {
+					mAudioDecoderQueueLock.unlock();
+					mAudioEncoderQueueLock.unlock();
+				}
+				if (decoderOutputWrapper != null && encoderInputIndex != null) {
+					if ((decoderOutputWrapper.mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+						if (VERBOSE) {
+							Log.d(TAG, "audioDecoder config frame");
+						}
+						mAudioDecoder.releaseOutputBuffer(decoderOutputWrapper.mIndex, false);
+					} else {
+						if (decoderOutputWrapper.mBufferInfo.size > 0) {
+							ByteBuffer decoderOutputBuffer = mAudioDecoder.getOutputBuffer(decoderOutputWrapper.mIndex);
+							decoderOutputBuffer = decoderOutputBuffer.duplicate();
+							decoderOutputBuffer.position(decoderOutputWrapper.mBufferInfo.offset).limit(decoderOutputWrapper.mBufferInfo.offset + decoderOutputWrapper.mBufferInfo.size);
+							ByteBuffer encoderInputBuffer = mAudioEncoder.getInputBuffer(encoderInputIndex);
+							encoderInputBuffer.position(0);
+							encoderInputBuffer.put(decoderOutputBuffer);
+						}
+						mAudioEncoder.queueInputBuffer(encoderInputIndex, decoderOutputWrapper.mBufferInfo.offset, decoderOutputWrapper.mBufferInfo.size, decoderOutputWrapper.mBufferInfo.presentationTimeUs, decoderOutputWrapper.mBufferInfo.flags);
+						mAudioDecoder.releaseOutputBuffer(decoderOutputWrapper.mIndex, false);
+						if ((decoderOutputWrapper.mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+							if (VERBOSE) {
+								Log.d(TAG, "audioDecoder eos ");
+							}
+						}
+					}
+				}
+				// 编码输出-muxer输入
+				OutputWrapper encoderOutputWrapper = null;
+				int audioTrack = -1;
+				try {
+					if (!mAudioEncodeDone && mMuxerLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+						audioTrack = mAudioMuxerTrack;
+						if (mMuxerStarted && mAudioEncoderQueueLock.tryLock(100, TimeUnit.MILLISECONDS)) {
+							encoderOutputWrapper = mAudioEncoderOutputQueue.peek();
+							if (encoderOutputWrapper != null) {
+								encoderOutputWrapper = mAudioEncoderOutputQueue.poll();
+							}
+						}
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} finally {
+					mMuxerLock.unlock();
+					mAudioEncoderQueueLock.unlock();
+				}
+				if (encoderOutputWrapper != null) {
+					if ((encoderOutputWrapper.mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+						if (VERBOSE) {
+							Log.d(TAG, "audioEncoder config frame");
+						}
+						mAudioEncoder.releaseOutputBuffer(encoderOutputWrapper.mIndex, false);
+					} else {
+						if (encoderOutputWrapper.mBufferInfo.size > 0) {
+							ByteBuffer encoderOutputBuffer = mAudioEncoder.getOutputBuffer(encoderOutputWrapper.mIndex);
+							encoderOutputBuffer = encoderOutputBuffer.duplicate();
+							encoderOutputBuffer.position(encoderOutputWrapper.mBufferInfo.offset).limit(encoderOutputWrapper.mBufferInfo.offset + encoderOutputWrapper.mBufferInfo.size);
+							mMuxer.writeSampleData(audioTrack, encoderOutputBuffer, encoderOutputWrapper.mBufferInfo);
+						}
+						mAudioEncoder.releaseOutputBuffer(encoderOutputWrapper.mIndex, false);
+						if ((encoderOutputWrapper.mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+							mAudioEncodeDone = true;
+							if (VERBOSE) {
+								Log.d(TAG, "audioEncoder eos");
+							}
+						}
+					}
 				}
 			}
 		}
