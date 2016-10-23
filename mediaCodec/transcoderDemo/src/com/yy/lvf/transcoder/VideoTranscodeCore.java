@@ -31,8 +31,9 @@ import android.view.Surface;
 import com.yy.lvf.InputSurface;
 import com.yy.lvf.OutputSurface;
 
-/**
- * 1、使用Lock代替synchronized关键字 2、多个线程访问共享变量所经历的锁路径应该是相同的
+/*
+ * 1、使用Lock代替synchronized关键字
+ * 2、多个线程访问共享变量所经历的锁路径应该是相同的
  * 3、为了避免死锁，多个线程对多个对象加锁的顺序应该相同。
  */
 public class VideoTranscodeCore {
