@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.concurrent.Future;
 
 import com.yy.lvf.FileChooser;
+import com.yy.lvf.util.DynamicRecursiveFileObserver;
+import com.yy.lvf.util.WxTimeLineVideoThief;
 import com.yy.lvf.view.CustomUnitRulerView;
 import com.yy.lvf.view.CustomUnitRulerView.Callback;
 
@@ -18,13 +20,13 @@ import android.view.View;
 import android.widget.TextView;
 
 public class TranscoderActivity extends Activity {
-	private static final String TAG = "TranscoderActivity";
-	private static final int REQUEST_CODE_PICK = 1;
-	private Future<Void> mFuture;
-	private File mRootD;
-	private File mOutputD;
-	private CustomUnitRulerView mRulerView;
-	private TextView mRulerValueTv;
+	private static final String	TAG					= "TranscoderActivity";
+	private static final int	REQUEST_CODE_PICK	= 1;
+	private Future<Void>		mFuture;
+	private File				mRootD;
+	private File				mOutputD;
+	private CustomUnitRulerView	mRulerView;
+	private TextView			mRulerValueTv;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +66,11 @@ public class TranscoderActivity extends Activity {
 			}
 		});
 		mRulerView.setBoundary(240, 700);
+		File root = Environment.getExternalStorageDirectory();
+		File microMsg = new File(root, "tencent" + File.separator + "MicroMsg");
+		DynamicRecursiveFileObserver.getInstance().setRoot(microMsg.getAbsolutePath());
+		DynamicRecursiveFileObserver.getInstance().setCallback(new WxTimeLineVideoThief(new File(root, "Download" + File.separator + "video"), new File(root, "Download" + File.separator + "thumb")));
+		DynamicRecursiveFileObserver.getInstance().start();
 	}
 
 	@Override
@@ -87,7 +94,7 @@ public class TranscoderActivity extends Activity {
 							@Override
 							public void transcoding(final int progress) {
 								mRulerValueTv.post(new Runnable() {
-									
+
 									@Override
 									public void run() {
 										mRulerValueTv.setText("" + progress);
@@ -95,7 +102,7 @@ public class TranscoderActivity extends Activity {
 								});
 							}
 						});
-//						core.syncTranscode();
+						//						core.syncTranscode();
 						core.asyncTranscode();
 					};
 				}.start();

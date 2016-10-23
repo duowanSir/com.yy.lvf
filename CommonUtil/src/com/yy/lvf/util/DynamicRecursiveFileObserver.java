@@ -22,7 +22,7 @@ import android.util.Log;
 
 public class DynamicRecursiveFileObserver {
 	private static class Instance {
-		private DynamicRecursiveFileObserver	mInstance	= new DynamicRecursiveFileObserver();
+		private static DynamicRecursiveFileObserver	mInstance	= new DynamicRecursiveFileObserver();
 	}
 
 	public class FileObserverExt extends FileObserver {
@@ -59,13 +59,32 @@ public class DynamicRecursiveFileObserver {
 					}
 				}
 				try {
-
+					if (mCallbackLock.tryLock(10, TimeUnit.MILLISECONDS)) {
+						if (mCallback != null) {
+							mCallback.onCreate(mDirectory, path);
+						}
+					} else {
+						logLock(mCallbackLock);
+					}
 				} catch (Exception e) {
+					e.printStackTrace();
 				} finally {
-
+					mCallbackLock.unlock();
 				}
 			} else if ((event & FileObserver.CLOSE_WRITE) != 0) {
-
+				try {
+					if (mCallbackLock.tryLock(10, TimeUnit.MILLISECONDS)) {
+						if (mCallback != null) {
+							mCallback.onCloseWrite(mDirectory, path);
+						}
+					} else {
+						logLock(mCallbackLock);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					mCallbackLock.unlock();
+				}
 			}
 		}
 
@@ -96,9 +115,9 @@ public class DynamicRecursiveFileObserver {
 	}
 
 	public interface Callback {
-		void onCreate(final String path);
+		void onCreate(final String father, final String path);
 
-		void onCloseWrite(final String path);
+		void onCloseWrite(final String father, final String path);
 	}
 
 	public static final boolean				VERBOSE				= true;
@@ -145,15 +164,14 @@ public class DynamicRecursiveFileObserver {
 		List<String> pendingGenerateDirs = new ArrayList<String>();
 
 		pendingGenerateDirs.add(mRoot);
-		boolean isDone = false;
-		while (!isDone) {
-			while (pendingGenerateDirs.size() > 0) {
-				File dir = new File(pendingGenerateDirs.get(0));
-				mObservableFiles.add(pendingGenerateDirs.get(0));
-				pendingGenerateDirs.remove(0);
+		while (pendingGenerateDirs.size() > 0) {
+			for (int i = 0; i < pendingGenerateDirs.size(); i++) {
+				File dir = new File(pendingGenerateDirs.get(i));
+				mObservableFiles.add(pendingGenerateDirs.get(i));
 				Future<List<String>> f = mExecutorService.submit(new ScanDirImpl(dir));
 				tasks.add(f);
 			}
+			pendingGenerateDirs.clear();
 			for (Future<List<String>> i : tasks) {
 				List<String> result = null;
 				try {
@@ -169,11 +187,7 @@ public class DynamicRecursiveFileObserver {
 					pendingGenerateDirs.addAll(result);
 				}
 			}
-			if (pendingGenerateDirs.size() <= 0) {
-				isDone = true;
-			} else {
-				isDone = false;
-			}
+			tasks.clear();
 		}
 		for (String i : mObservableFiles) {
 			mObservers.put(i, new FileObserverExt(i));
@@ -239,12 +253,17 @@ public class DynamicRecursiveFileObserver {
 	public void setCallback(Callback callback) {
 		try {
 			if (mCallbackLock.tryLock(10, TimeUnit.MILLISECONDS)) {
+				mCallback = callback;
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		} finally {
-
+			mCallbackLock.unlock();
 		}
+	}
+
+	public static DynamicRecursiveFileObserver getInstance() {
+		return Instance.mInstance;
 	}
 
 	public static void logLock(Lock lock) {
