@@ -12,16 +12,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import android.os.FileObserver;
+import android.util.Log;
 
 public class DynamicRecursiveFileObserver {
 	private static class Instance {
-		private DynamicRecursiveFileObserver mInstance = new DynamicRecursiveFileObserver();
+		private DynamicRecursiveFileObserver	mInstance	= new DynamicRecursiveFileObserver();
 	}
 
 	public class FileObserverExt extends FileObserver {
-		private String mDirectory;
+		private String	mDirectory;
 
 		public FileObserverExt(String path) {
 			super(path);
@@ -31,7 +36,34 @@ public class DynamicRecursiveFileObserver {
 		@Override
 		public void onEvent(int event, String path) {
 			if ((event & FileObserver.CREATE) != 0) {
+				File newFile = new File(mDirectory, path);
+				if (newFile.isDirectory()) {
+					try {
+						if (mLock.writeLock().tryLock(100, TimeUnit.MILLISECONDS)) {
+							if (mState != 1) {
+								throw new IllegalStateException("");
+							} else {
+								String newPath = newFile.getAbsolutePath();
+								mObservableFiles.add(newPath);
+								FileObserverExt newObserver = new FileObserverExt(newPath);
+								mObservers.put(newPath, newObserver);
+								newObserver.startWatching();
+							}
+						} else {
+							logLock(mLock.writeLock());
+						}
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					} finally {
+						mLock.writeLock().unlock();
+					}
+				}
+				try {
 
+				} catch (Exception e) {
+				} finally {
+
+				}
 			} else if ((event & FileObserver.CLOSE_WRITE) != 0) {
 
 			}
@@ -40,7 +72,7 @@ public class DynamicRecursiveFileObserver {
 	}
 
 	public class ScanDirImpl implements Callable<List<String>> {
-		private final File mDirectory;
+		private final File	mDirectory;
 
 		public ScanDirImpl(File dir) {
 			mDirectory = dir;
@@ -64,31 +96,43 @@ public class DynamicRecursiveFileObserver {
 	}
 
 	public interface Callback {
-		void onCreate();
+		void onCreate(final String path);
 
-		void onCloseWrite();
+		void onCloseWrite(final String path);
 	}
 
-	private String mRoot;
-	private volatile int mState;
-	private List<String> mObservableFiles = new ArrayList<String>();
-	private Map<String, FileObserverExt> mObservers = new HashMap<String, FileObserverExt>();
+	public static final boolean				VERBOSE				= true;
+	public static final String				TAG					= DynamicRecursiveFileObserver.class.getSimpleName();
+	private String							mRoot;
+	private final ReadWriteLock				mLock				= new ReentrantReadWriteLock();
+	private int								mState;
+	private List<String>					mObservableFiles	= new ArrayList<String>();
+	private Map<String, FileObserverExt>	mObservers			= new HashMap<String, FileObserverExt>();
 
-	private final Object mSync = new Object();
-	private final ExecutorService mExecutorService = Executors.newFixedThreadPool(3);
+	private final ExecutorService			mExecutorService	= Executors.newFixedThreadPool(3);
+	private final ReentrantLock				mCallbackLock		= new ReentrantLock();
+	private Callback						mCallback;
 
 	private DynamicRecursiveFileObserver() {
 	}
 
 	public void setRoot(String path) {
-		synchronized (mSync) {
-			if (path.equals(mRoot)) {
-				mState = -1;
-				return;
+		try {
+			if (mLock.writeLock().tryLock(100, TimeUnit.MILLISECONDS)) {
+				if (path.equals(mRoot)) {
+					return;
+				}
+				if (mState != 0) {
+					throw new IllegalStateException("");
+				}
+				mRoot = path;
+				generateObservers();
+				mState = 0;
 			}
-			mRoot = path;
-			generateObservers();
-			mState = 0;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			mLock.writeLock().unlock();
 		}
 	}
 
@@ -134,29 +178,78 @@ public class DynamicRecursiveFileObserver {
 		for (String i : mObservableFiles) {
 			mObservers.put(i, new FileObserverExt(i));
 		}
-
 	}
 
 	public void start() {
-		synchronized (mSync) {
-			if (mState == 0) {
-				for (String k : mObservableFiles) {
-					FileObserverExt v = mObservers.get(k);
-					v.startWatching();
+		boolean done = false;
+		try {
+			if (mLock.readLock().tryLock(100, TimeUnit.MILLISECONDS)) {
+				if (mState == 0) {
+					for (String k : mObservableFiles) {
+						FileObserverExt v = mObservers.get(k);
+						v.startWatching();
+					}
+					done = true;
 				}
-				mState = 1;
+			}
+		} catch (InterruptedException e) {
+		} finally {
+			mLock.readLock().unlock();
+		}
+		if (done) {
+			try {
+				if (mLock.writeLock().tryLock(100, TimeUnit.MILLISECONDS)) {
+					mState = 1;
+				}
+			} catch (InterruptedException e) {
+			} finally {
+				mLock.writeLock().unlock();
 			}
 		}
 	}
 
 	public void stop() {
-		synchronized (mSync) {
-			if (mState == 1) {
-				for (String k : mObservableFiles) {
-					FileObserverExt v = mObservers.get(k);
-					v.stopWatching();
+		boolean done = false;
+		try {
+			if (mLock.readLock().tryLock(100, TimeUnit.MILLISECONDS)) {
+				if (mState == 1) {
+					for (String k : mObservableFiles) {
+						FileObserverExt v = mObservers.get(k);
+						v.stopWatching();
+					}
+					done = true;
 				}
 			}
+		} catch (InterruptedException e) {
+		} finally {
+			mLock.readLock().unlock();
+		}
+		if (done) {
+			try {
+				if (mLock.writeLock().tryLock(100, TimeUnit.MILLISECONDS)) {
+					mState = 0;
+				}
+			} catch (InterruptedException e) {
+			} finally {
+				mLock.writeLock().unlock();
+			}
+		}
+	}
+
+	public void setCallback(Callback callback) {
+		try {
+			if (mCallbackLock.tryLock(10, TimeUnit.MILLISECONDS)) {
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+
+		}
+	}
+
+	public static void logLock(Lock lock) {
+		if (VERBOSE) {
+			Log.d(TAG, Thread.currentThread() + " lock " + lock.toString() + " failed");
 		}
 	}
 
