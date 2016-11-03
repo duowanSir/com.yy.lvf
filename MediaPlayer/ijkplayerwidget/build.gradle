@@ -27,5 +27,5 @@ dependencies {
 
     compile 'com.android.support:support-annotations:23.2.1'
     compile 'tv.danmaku.ijk.media:ijkplayer-java:0.6.1'
-    compile 'tv.danmaku.ijk.media:ijkplayer-armv7a:0.6.1'
+    compile 'tv.danmaku.ijk.media:ijkplayer-armv5:0.6.1'
 }

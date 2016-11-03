@@ -4,9 +4,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btn"
+    <FrameLayout
+        android:id="@+id/fragment_fl"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="啊啊啊啊" />
+        android:layout_height="match_parent">
+
+    </FrameLayout>
 </LinearLayout>
