@@ -3,6 +3,8 @@ package com.yy.lvf.playerlist;
 import android.content.Context;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.method.MovementMethod;
 import android.text.style.ForegroundColorSpan;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -82,6 +84,7 @@ public class VideoSourceAdapter extends BaseAdapter implements View.OnClickListe
         ss.setSpan(new ForegroundColorSpan(0xff13579a), 0, ss.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
         holder.mPlayBtn.setText(ss);
         holder.mPlayBtn.setMaxLines(2);
+        holder.mPlayBtn.setMovementMethod(LinkMovementMethod.getInstance());
         return convertView;
     }
 
