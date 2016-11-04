@@ -1,10 +1,9 @@
-package com.yy.lvf.playerlist;
+package com.yy.lvf.player;
 
 import android.content.Context;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
-import android.text.method.MovementMethod;
 import android.text.style.ForegroundColorSpan;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -13,6 +12,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+
+import com.yy.lvf.R;
 
 import java.util.List;
 

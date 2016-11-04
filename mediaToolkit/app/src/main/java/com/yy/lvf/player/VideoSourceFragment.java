@@ -1,4 +1,4 @@
-package com.yy.lvf.playerlist;
+package com.yy.lvf.player;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -7,6 +7,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
+
+import com.yy.lvf.R;
 
 import java.util.ArrayList;
 import java.util.List;
