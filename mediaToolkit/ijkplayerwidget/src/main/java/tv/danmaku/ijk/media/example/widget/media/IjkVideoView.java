@@ -355,11 +355,11 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     }
 
     private void attachMediaController() {
-        if (mMediaPlayer != null && mMediaController != null) {
+        if (/*mMediaPlayer != null && */mMediaController != null) {
             mMediaController.setMediaPlayer(this);
-            View anchorView = this.getParent() instanceof View ?
-                    (View) this.getParent() : this;
-            mMediaController.setAnchorView(anchorView);
+//            View anchorView = this.getParent() instanceof View ?
+//                    (View) this.getParent() : this;
+            mMediaController.setAnchorView(this);
             mMediaController.setEnabled(isInPlaybackState());
         }
     }
@@ -820,7 +820,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
         return 0;
     }
 
-    private boolean isInPlaybackState() {
+    public boolean isInPlaybackState() {
         return (mMediaPlayer != null &&
                 mCurrentState != STATE_ERROR &&
                 mCurrentState != STATE_IDLE &&

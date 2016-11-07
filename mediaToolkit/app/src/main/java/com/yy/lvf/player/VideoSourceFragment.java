@@ -31,12 +31,14 @@ public class VideoSourceFragment extends Fragment {
         initData();
         mAdapter = new VideoSourceAdapter(getActivity(), mData);
         mLv.setAdapter(mAdapter);
+        mLv.setOnScrollListener(mAdapter);
+        mLv.setRecyclerListener(mAdapter);
         return view;
     }
 
     private void initData() {
         mData = new ArrayList<String>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 36; i++) {
             mData.add(mVideo);
         }
     }
