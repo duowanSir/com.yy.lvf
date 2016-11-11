@@ -5,8 +5,8 @@
     android:orientation="vertical"
     android:weightSum="1" >
 
-    <android.opengl.GLSurfaceView
-        android:id="@+id/preview_glsv"
+    <SurfaceView
+        android:id="@+id/preview_sv"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
