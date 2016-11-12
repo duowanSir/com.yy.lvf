@@ -14,9 +14,10 @@ public final class R {
         public static final int ic_launcher=0x7f020000;
     }
     public static final class id {
-        public static final int camera_surface_view=0x7f060000;
-        public static final int start_btn=0x7f060001;
-        public static final int switch_btn=0x7f060002;
+        public static final int preview_sv=0x7f060000;
+        public static final int record_video_btn=0x7f060001;
+        public static final int switch_camera_btn=0x7f060003;
+        public static final int take_picture_btn=0x7f060002;
     }
     public static final class layout {
         public static final int camera_activity=0x7f030000;

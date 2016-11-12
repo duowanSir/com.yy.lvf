@@ -1,36 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:weightSum="1" >
 
     <SurfaceView
-        android:id="@+id/camera_surface_view"
+        android:id="@+id/preview_sv"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#00000000"
         android:orientation="horizontal" >
 
         <Button
-            android:id="@+id/start_btn"
+            android:id="@+id/record_video_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="5dp"
+            android:padding="10dp"
             android:text="开始"
             android:textColor="#13579a" />
 
         <Button
-            android:id="@+id/switch_btn"
+            android:id="@+id/take_picture_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="5dp"
+            android:padding="10dp"
+            android:text="拍照"
+            android:textColor="#13579a" />
+
+        <Button
+            android:id="@+id/switch_camera_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
             android:text="切换"
             android:textColor="#13579a" />
     </LinearLayout>
 
-</LinearLayout>
+</FrameLayout>
