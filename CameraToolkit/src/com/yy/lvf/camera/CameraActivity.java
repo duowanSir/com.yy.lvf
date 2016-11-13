@@ -16,17 +16,19 @@ import com.yy.lvf.gles.WindowSurface;
 
 import android.app.Activity;
 import android.graphics.SurfaceTexture;
+import android.graphics.SurfaceTexture.OnFrameAvailableListener;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
+import android.opengl.GLES20;
+import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
@@ -38,7 +40,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 
 public class CameraActivity extends Activity implements OnClickListener, Callback {
-	public static class RenderThread extends Thread implements SurfaceTextureListener {
+	public static class RenderThread extends Thread implements OnFrameAvailableListener {
 		// Used to wait for the thread to start.
 		private Object				mStartLock	= new Object();
 		private boolean				mReady		= false;
@@ -46,10 +48,14 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 
 		private EglCore				mEglCore;
 		private WindowSurface		mWindowSurface;
+		private int					mWindowSurfaceWidth;
+		private int					mWindowSurfaceHeight;
+		private int					mCameraPreviewWidth;
+		private int					mCameraPreviewHeight;
 
 		private SurfaceTexture		mCameraTexture;
-
 		private Texture2dProgram	mTexProgram;
+		private float[] mDisplayProjectionMatrix = new float[16];
 
 		@Override
 		public void run() {
@@ -77,24 +83,61 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		}
 
 		@Override
-		public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-		}
+		public void onFrameAvailable(SurfaceTexture surfaceTexture) {
 
-		@Override
-		public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-		}
-
-		@Override
-		public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-			return false;
-		}
-
-		@Override
-		public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 		}
 
 		public RenderHandler getRenderHandler() {
 			return mRenderHandler;
+		}
+
+		public void msgSurfaceCreated(SurfaceHolder surfaceHolder) {
+			Surface surface = surfaceHolder.getSurface();
+			mWindowSurface = new WindowSurface(mEglCore, surface, false);
+			mWindowSurface.makeCurrent();
+
+			// Create and configure the SurfaceTexture, which will receive frames from the
+			// camera.  We set the textured rect's program to render from it.
+			mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT);
+			int textureId = mTexProgram.createTextureObject();
+			mCameraTexture = new SurfaceTexture(textureId);
+			//	            mRect.setTexture(textureId);
+			mCameraTexture.setOnFrameAvailableListener(this);
+		}
+
+		public void msgSurfaceChanged(int width, int height) {
+			LLog.d(TAG, "msgSurfaceChanged(" + width + ", " + height + ")");
+
+			mWindowSurfaceWidth = width;
+			mWindowSurfaceHeight = height;
+			finishSurfaceSetup();
+		}
+
+		private void finishSurfaceSetup() {
+//			int width = mWindowSurfaceWidth;
+//			int height = mWindowSurfaceHeight;
+//			Log.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
+//
+//			// Use full window.
+//			GLES20.glViewport(0, 0, width, height);
+//
+//			// Simple orthographic projection, with (0,0) in lower-left corner.
+//			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
+//
+//			// Default position is center of screen.
+//			mPosX = width / 2.0f;
+//			mPosY = height / 2.0f;
+//
+//			updateGeometry();
+//
+//			// Ready to go, start the camera.
+//			Log.d(TAG, "starting camera preview");
+//			try {
+//				mCamera.setPreviewTexture(mCameraTexture);
+//			} catch (IOException ioe) {
+//				throw new RuntimeException(ioe);
+//			}
+//			mCamera.startPreview();
 		}
 
 		private void releaseGl() {
@@ -131,18 +174,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			}
 			switch (msg.what) {
 			case MSG_SURFACE_CREATED:
-				SurfaceHolder surfaceHolder = (SurfaceHolder) msg.obj;
-				Surface surface = surfaceHolder.getSurface();
-				renderThread.mWindowSurface = new WindowSurface(renderThread.mEglCore, surface, false);
-				renderThread.mWindowSurface.makeCurrent();
 
-				// Create and configure the SurfaceTexture, which will receive frames from the
-				// camera.  We set the textured rect's program to render from it.
-				renderThread.mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT);
-				int textureId = renderThread.mTexProgram.createTextureObject();
-				renderThread.mCameraTexture = new SurfaceTexture(textureId);
-				//	            mRect.setTexture(textureId);
-//				renderThread.mCameraTexture.setOnFrameAvailableListener(this);
 				break;
 			default:
 				break;
@@ -205,13 +237,14 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		mCamera = getCameraInstance(mCameraId);
 		setPreviewSize();
 
-		mRenderThread = new RenderThread();
-		mRenderThread.start();
-		try {
-			mRenderThread.waitUtilReady();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+//		mRenderThread = new RenderThread();
+//		mRenderThread.start();
+//		try {
+//			mRenderThread.waitUtilReady();
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+		
 	}
 
 	@Override
@@ -265,7 +298,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		Parameters params = mCamera.getParameters();
 		CameraInfo info = new CameraInfo();
 		Camera.getCameraInfo(mCameraId, info);
-		Log.d(TAG, "cameraInfo[" + info.facing + ", " + info.orientation + "]");
+		LLog.d(TAG, "cameraInfo[" + info.facing + ", " + info.orientation + "]");
 		int displayOrientation = getWindowManager().getDefaultDisplay().getOrientation();
 		switch (displayOrientation) {
 		case Surface.ROTATION_0:
