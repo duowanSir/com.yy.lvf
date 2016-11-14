@@ -1,4 +1,4 @@
-package com.yy.lvf.mygles;
+package com.yy.lvf.myegl;
 
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
