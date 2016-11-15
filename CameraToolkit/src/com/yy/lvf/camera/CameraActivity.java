@@ -1,13 +1,10 @@
 package com.yy.lvf.camera;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import com.yy.lvf.CameraUtil;
 import com.yy.lvf.LLog;
 import com.yy.lvf.myegl.EglCore;
 import com.yy.lvf.myegl.WindowSurface;
@@ -20,23 +17,20 @@ import android.graphics.SurfaceTexture.OnFrameAvailableListener;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
-import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
-import android.view.TextureView.SurfaceTextureListener;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 
 public class CameraActivity extends Activity implements OnClickListener, Callback {
@@ -46,6 +40,9 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		private boolean				mReady						= false;
 		private RenderHandler		mRenderHandler;
 
+		private int					mCameraId;
+		private Camera				mCamera;
+
 		private EglCore				mEglCore;
 		private WindowSurface		mWindowSurface;
 		private int					mWindowSurfaceWidth;
@@ -53,9 +50,12 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		private int					mCameraPreviewWidth;
 		private int					mCameraPreviewHeight;
 
-		private SurfaceTexture		mCameraTexture;
 		private Texture2dProgram	mTexProgram;
+		//		private final ScaledDrawable2d	mRectDrawable				= new ScaledDrawable2d(Drawable2d.Prefab.RECTANGLE);
+		//		private final Sprite2d			mRect						= new Sprite2d(mRectDrawable);
+		private SurfaceTexture		mCameraTexture;
 		private float[]				mDisplayProjectionMatrix	= new float[16];
+		private float				mPosX, mPosY;
 
 		@Override
 		public void run() {
@@ -82,6 +82,16 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			}
 		}
 
+		private void openCamera() {
+			CameraUtil.CameraInstanceAndId cameraInstanceAndId = CameraUtil.openCamera(CameraInfo.CAMERA_FACING_BACK);
+			if (cameraInstanceAndId == null) {
+				throw new RuntimeException("unable to open camera");
+			}
+			Parameters parameters = cameraInstanceAndId.mCamera.getParameters();
+			List<Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
+//			Size desiredSize = CameraUtil.selectPreviewSize(desiredWidth, desiredHeight, supportedSize, displayOrientation)
+		}
+
 		@Override
 		public void onFrameAvailable(SurfaceTexture surfaceTexture) {
 
@@ -91,7 +101,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			return mRenderHandler;
 		}
 
-		public void msgSurfaceCreated(SurfaceHolder surfaceHolder) {
+		public void surfaceCreated(SurfaceHolder surfaceHolder, boolean newSurface) {
 			Surface surface = surfaceHolder.getSurface();
 			mWindowSurface = new WindowSurface(mEglCore, surface, false);
 			mWindowSurface.makeCurrent();
@@ -99,11 +109,21 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT);
 			int textureId = mTexProgram.createTextureObject();
 			mCameraTexture = new SurfaceTexture(textureId);
-			//	            mRect.setTexture(textureId);
+			//			mRect.setTexture(textureId);
+			if (!newSurface) {
+				// This Surface was established on a previous run, so no surfaceChanged()
+				// message is forthcoming.  Finish the surface setup now.
+				//
+				// We could also just call this unconditionally, and perhaps do an unnecessary
+				// bit of reallocating if a surface-changed message arrives.
+				mWindowSurfaceWidth = mWindowSurface.getWidth();
+				mWindowSurfaceHeight = mWindowSurface.getHeight();
+				finishSurfaceSetup();
+			}
 			mCameraTexture.setOnFrameAvailableListener(this);
 		}
 
-		public void msgSurfaceChanged(int width, int height) {
+		public void surfaceChanged(int width, int height) {
 			LLog.d(TAG, "msgSurfaceChanged(" + width + ", " + height + ")");
 
 			mWindowSurfaceWidth = width;
@@ -112,30 +132,30 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		}
 
 		private void finishSurfaceSetup() {
-			//			int width = mWindowSurfaceWidth;
-			//			int height = mWindowSurfaceHeight;
-			//			Log.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
-			//
-			//			// Use full window.
-			//			GLES20.glViewport(0, 0, width, height);
-			//
-			//			// Simple orthographic projection, with (0,0) in lower-left corner.
-			//			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
-			//
-			//			// Default position is center of screen.
-			//			mPosX = width / 2.0f;
-			//			mPosY = height / 2.0f;
-			//
+			int width = mWindowSurfaceWidth;
+			int height = mWindowSurfaceHeight;
+			LLog.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
+
+			// Use full window.
+			GLES20.glViewport(0, 0, width, height);
+
+			// Simple orthographic projection(正投影), with (0,0) in lower-left corner.
+			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
+
+			// Default position is center of screen.
+			mPosX = width / 2.0f;
+			mPosY = height / 2.0f;
+
 			//			updateGeometry();
-			//
-			//			// Ready to go, start the camera.
-			//			Log.d(TAG, "starting camera preview");
-			//			try {
-			//				mCamera.setPreviewTexture(mCameraTexture);
-			//			} catch (IOException ioe) {
-			//				throw new RuntimeException(ioe);
-			//			}
-			//			mCamera.startPreview();
+
+			// Ready to go, start the camera.
+			Log.d(TAG, "starting camera preview");
+			try {
+				mCamera.setPreviewTexture(mCameraTexture);
+			} catch (IOException ioe) {
+				throw new RuntimeException(ioe);
+			}
+			mCamera.startPreview();
 		}
 
 		private void releaseGl() {
@@ -172,11 +192,16 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			}
 			switch (msg.what) {
 			case MSG_SURFACE_CREATED:
-
+				mRenderThread.get().surfaceCreated((SurfaceHolder) msg.obj, msg.arg1 == 0 ? false : true);
 				break;
 			default:
 				break;
 			}
+		}
+
+		public void surfaceCreated(SurfaceHolder surfaceHolder, boolean newSurface) {
+			Message msg = obtainMessage(MSG_SURFACE_CREATED, newSurface ? 1 : 0, 0, surfaceHolder);
+			sendMessage(msg);
 		}
 	}
 
@@ -185,9 +210,6 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 	private Button				mRecordVideoBtn;
 	private Button				mTakePictureBtn;
 	private Button				mSwitchCameraBtn;
-
-	private int					mCameraId;
-	private Camera				mCamera;									//camera应该的放在onResume和onPause里面去管理
 
 	private RenderThread		mRenderThread;
 
@@ -209,14 +231,26 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 	}
 
 	@Override
-	public void surfaceCreated(SurfaceHolder holder) {
-		LLog.d(TAG, "surfaceCreated(" + holder + ", " + Thread.currentThread() + ")");
+	protected void onResume() {
+		super.onResume();
+		mRenderThread = new RenderThread();
+		mRenderThread.start();
 		try {
-			mCamera.setPreviewDisplay(mPreviewSv.getHolder());
-			mCamera.startPreview();
-		} catch (IOException e) {
+			mRenderThread.waitUtilReady();
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+	}
+
+	@Override
+	public void surfaceCreated(SurfaceHolder holder) {
+		LLog.d(TAG, "surfaceCreated(" + holder + ", " + Thread.currentThread() + ")");
+		mRenderThread.getRenderHandler().surfaceCreated(holder, true);
 	}
 
 	@Override
@@ -230,140 +264,10 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 	}
 
 	@Override
-	protected void onResume() {
-		super.onResume();
-		mCamera = getCameraInstance(mCameraId);
-		setPreviewSize();
-
-		//		mRenderThread = new RenderThread();
-		//		mRenderThread.start();
-		//		try {
-		//			mRenderThread.waitUtilReady();
-		//		} catch (InterruptedException e) {
-		//			e.printStackTrace();
-		//		}
-
-	}
-
-	@Override
-	protected void onPause() {
-		super.onPause();
-		releaseCamera();
-	}
-
-	@Override
 	public void onClick(View v) {
 		if (v == mRecordVideoBtn) {
-			mCamera.takePicture(null, null, new PictureCallback() {
-
-				@Override
-				public void onPictureTaken(byte[] data, Camera camera) {
-					File pictureDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-					File pictureFile = new File(pictureDir, "cameraToolkit.jpg");
-					if (pictureFile.exists()) {
-						pictureFile.delete();
-					}
-					BufferedOutputStream bos = null;
-					try {
-						bos = new BufferedOutputStream(new FileOutputStream(pictureFile));
-						bos.write(data);
-						bos.flush();
-					} catch (FileNotFoundException e) {
-						e.printStackTrace();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} finally {
-						if (bos != null) {
-							try {
-								bos.close();
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						}
-					}
-				}
-			});
 		} else if (v == mSwitchCameraBtn) {
-			releaseCamera();
-			mCameraId = (++mCameraId) % Camera.getNumberOfCameras();
-			mCamera = getCameraInstance(mCameraId);
 		}
-	}
-
-	private void setPreviewSize() {
-		Parameters params = mCamera.getParameters();
-		CameraInfo info = new CameraInfo();
-		Camera.getCameraInfo(mCameraId, info);
-		LLog.d(TAG, "cameraInfo[" + info.facing + ", " + info.orientation + "]");
-		int displayOrientation = getWindowManager().getDefaultDisplay().getOrientation();
-		switch (displayOrientation) {
-		case Surface.ROTATION_0:
-			displayOrientation = 0;
-			break;
-		case Surface.ROTATION_90:
-			displayOrientation = 90;
-			break;
-		case Surface.ROTATION_180:
-			displayOrientation = 180;
-			break;
-		case Surface.ROTATION_270:
-			displayOrientation = 270;
-			break;
-		default:
-			throw new IllegalArgumentException("invalid display orientaion");
-		}
-		int cameraDisplayOrientation = 0;
-		if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-			cameraDisplayOrientation = (info.orientation + displayOrientation) % 360;
-			cameraDisplayOrientation = (360 - cameraDisplayOrientation) % 360;
-		} else {
-			cameraDisplayOrientation = (info.orientation - displayOrientation + 360) % 360;
-		}
-		List<Size> previewSizes = params.getSupportedPreviewSizes();
-		for (Size size : previewSizes) {
-			int width;
-			int height;
-			if (cameraDisplayOrientation == 0 || cameraDisplayOrientation == 180) {
-				width = size.width;
-				height = size.height;
-			} else {
-				width = size.height;
-				height = size.width;
-			}
-			if (width == getResources().getDisplayMetrics().widthPixels) {
-				LayoutParams previewLp = mPreviewSv.getLayoutParams();
-				previewLp.width = width;
-				previewLp.height = height;
-				mPreviewSv.setLayoutParams(previewLp);
-				params.setPreviewSize(size.width, size.height);
-				mCamera.setParameters(params);
-				break;
-			}
-		}
-		mCamera.setDisplayOrientation(cameraDisplayOrientation);
-	}
-
-	private void releaseCamera() {
-		if (mCamera != null) {
-			mCamera.release();
-			mCamera = null;
-		}
-	}
-
-	public static Camera getCameraInstance(int i) {
-		int cameraNums = Camera.getNumberOfCameras();
-		if (i > cameraNums) {
-			throw new IllegalArgumentException("invalid camera id");
-		}
-		Camera c = null;
-		try {
-			c = Camera.open(i);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return c;
 	}
 
 }
