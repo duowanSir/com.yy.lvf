@@ -6,7 +6,8 @@ import android.opengl.GLES20;
 
 public class GlesUtil {
 	public static final String TAG = GlesUtil.class.getSimpleName();
-
+	
+	// vertexShader控制展示形状,fragmentShader控制展示滤镜.
 	public static int createProgram(String vertexSource, String fragmentSource) {
 		int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexSource);
 		if (vertexShader <= 0) {
@@ -23,9 +24,9 @@ public class GlesUtil {
 			return 0;
 		}
 		GLES20.glAttachShader(program, vertexShader);
-		checkError("glAttachShader");
+		checkError("glAttachShader(" + program + ", " + vertexShader + ")");
 		GLES20.glAttachShader(program, fragmentShader);
-		checkError("glAttachShader");
+		checkError("glAttachShader(" + program + ", " + fragmentShader + ")");
 		// 连接成可执行单元,vertexShader运行在vertex处理器上,fragmentShader运行在fragment处理器上.
 		// 通过glGetProgramiv来查询指定状态的值
 		GLES20.glLinkProgram(program);
@@ -59,4 +60,10 @@ public class GlesUtil {
 			throw new IllegalStateException(api + " failed");
 		}
 	}
+	
+	public static void checkLocation(int location, String label) {
+        if (location < 0) {
+            throw new RuntimeException("Unable to locate '" + label + "' in program");
+        }
+    }
 }

@@ -9,10 +9,10 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 
 import com.yy.lvf.LLog;
-import com.yy.lvf.gles.EglCore;
-import com.yy.lvf.gles.GlUtil;
-import com.yy.lvf.gles.Texture2dProgram;
-import com.yy.lvf.gles.WindowSurface;
+import com.yy.lvf.myegl.EglCore;
+import com.yy.lvf.myegl.WindowSurface;
+import com.yy.lvf.mygles.GlesUtil;
+import com.yy.lvf.mygles.Texture2dProgram;
 
 import android.app.Activity;
 import android.graphics.SurfaceTexture;
@@ -42,8 +42,8 @@ import android.widget.Button;
 public class CameraActivity extends Activity implements OnClickListener, Callback {
 	public static class RenderThread extends Thread implements OnFrameAvailableListener {
 		// Used to wait for the thread to start.
-		private Object				mStartLock	= new Object();
-		private boolean				mReady		= false;
+		private Object				mStartLock					= new Object();
+		private boolean				mReady						= false;
 		private RenderHandler		mRenderHandler;
 
 		private EglCore				mEglCore;
@@ -55,7 +55,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 
 		private SurfaceTexture		mCameraTexture;
 		private Texture2dProgram	mTexProgram;
-		private float[] mDisplayProjectionMatrix = new float[16];
+		private float[]				mDisplayProjectionMatrix	= new float[16];
 
 		@Override
 		public void run() {
@@ -96,8 +96,6 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			mWindowSurface = new WindowSurface(mEglCore, surface, false);
 			mWindowSurface.makeCurrent();
 
-			// Create and configure the SurfaceTexture, which will receive frames from the
-			// camera.  We set the textured rect's program to render from it.
 			mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT);
 			int textureId = mTexProgram.createTextureObject();
 			mCameraTexture = new SurfaceTexture(textureId);
@@ -114,34 +112,34 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		}
 
 		private void finishSurfaceSetup() {
-//			int width = mWindowSurfaceWidth;
-//			int height = mWindowSurfaceHeight;
-//			Log.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
-//
-//			// Use full window.
-//			GLES20.glViewport(0, 0, width, height);
-//
-//			// Simple orthographic projection, with (0,0) in lower-left corner.
-//			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
-//
-//			// Default position is center of screen.
-//			mPosX = width / 2.0f;
-//			mPosY = height / 2.0f;
-//
-//			updateGeometry();
-//
-//			// Ready to go, start the camera.
-//			Log.d(TAG, "starting camera preview");
-//			try {
-//				mCamera.setPreviewTexture(mCameraTexture);
-//			} catch (IOException ioe) {
-//				throw new RuntimeException(ioe);
-//			}
-//			mCamera.startPreview();
+			//			int width = mWindowSurfaceWidth;
+			//			int height = mWindowSurfaceHeight;
+			//			Log.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
+			//
+			//			// Use full window.
+			//			GLES20.glViewport(0, 0, width, height);
+			//
+			//			// Simple orthographic projection, with (0,0) in lower-left corner.
+			//			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
+			//
+			//			// Default position is center of screen.
+			//			mPosX = width / 2.0f;
+			//			mPosY = height / 2.0f;
+			//
+			//			updateGeometry();
+			//
+			//			// Ready to go, start the camera.
+			//			Log.d(TAG, "starting camera preview");
+			//			try {
+			//				mCamera.setPreviewTexture(mCameraTexture);
+			//			} catch (IOException ioe) {
+			//				throw new RuntimeException(ioe);
+			//			}
+			//			mCamera.startPreview();
 		}
 
 		private void releaseGl() {
-			GlUtil.checkGlError("releaseGl start");
+			GlesUtil.checkError("releaseGl start");
 
 			if (mWindowSurface != null) {
 				mWindowSurface.release();
@@ -151,7 +149,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 				mTexProgram.release();
 				mTexProgram = null;
 			}
-			GlUtil.checkGlError("releaseGl done");
+			GlesUtil.checkError("releaseGl done");
 
 			mEglCore.makeNothingCurrent();
 		}
@@ -237,14 +235,14 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		mCamera = getCameraInstance(mCameraId);
 		setPreviewSize();
 
-//		mRenderThread = new RenderThread();
-//		mRenderThread.start();
-//		try {
-//			mRenderThread.waitUtilReady();
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
-		
+		//		mRenderThread = new RenderThread();
+		//		mRenderThread.start();
+		//		try {
+		//			mRenderThread.waitUtilReady();
+		//		} catch (InterruptedException e) {
+		//			e.printStackTrace();
+		//		}
+
 	}
 
 	@Override
