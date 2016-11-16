@@ -1,12 +1,24 @@
 package com.yy.lvf.mygles;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+
 import com.yy.lvf.LLog;
 
 import android.opengl.GLES20;
+import android.opengl.Matrix;
 
 public class GlesUtil {
-	public static final String TAG = GlesUtil.class.getSimpleName();
-	
+	public static final String	TAG				= GlesUtil.class.getSimpleName();
+	public static final int		SIZEOF_FLOAT	= 4;
+	public static final float[]	IDENTITY_MATRIX;
+
+	static {
+		IDENTITY_MATRIX = new float[16];
+		Matrix.setIdentityM(IDENTITY_MATRIX, 0);
+	}
+
 	// vertexShader控制展示形状,fragmentShader控制展示滤镜.
 	public static int createProgram(String vertexSource, String fragmentSource) {
 		int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexSource);
@@ -60,10 +72,24 @@ public class GlesUtil {
 			throw new IllegalStateException(api + " failed");
 		}
 	}
-	
+
 	public static void checkLocation(int location, String label) {
-        if (location < 0) {
-            throw new RuntimeException("Unable to locate '" + label + "' in program");
-        }
-    }
+		if (location < 0) {
+			throw new RuntimeException("Unable to locate '" + label + "' in program");
+		}
+	}
+
+	/**
+	 * Allocates a direct float buffer, and populates it with the float array
+	 * data.
+	 */
+	public static FloatBuffer createFloatBuffer(float[] coords) {
+		// Allocate a direct ByteBuffer, using 4 bytes per float, and copy coords into it.
+		ByteBuffer bb = ByteBuffer.allocateDirect(coords.length * SIZEOF_FLOAT);
+		bb.order(ByteOrder.nativeOrder());
+		FloatBuffer fb = bb.asFloatBuffer();
+		fb.put(coords);
+		fb.position(0);
+		return fb;
+	}
 }

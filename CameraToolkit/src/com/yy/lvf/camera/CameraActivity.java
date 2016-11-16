@@ -8,7 +8,10 @@ import com.yy.lvf.CameraUtil;
 import com.yy.lvf.LLog;
 import com.yy.lvf.myegl.EglCore;
 import com.yy.lvf.myegl.WindowSurface;
+import com.yy.lvf.mygles.Drawable2d;
 import com.yy.lvf.mygles.GlesUtil;
+import com.yy.lvf.mygles.ScaledDrawable2d;
+import com.yy.lvf.mygles.Sprite2d;
 import com.yy.lvf.mygles.Texture2dProgram;
 
 import android.app.Activity;
@@ -31,13 +34,19 @@ import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class CameraActivity extends Activity implements OnClickListener, Callback {
 	public static class RenderThread extends Thread implements OnFrameAvailableListener {
-		// Used to wait for the thread to start.
+		public static final int		DESIRE_PREVIEW_WIDTH		= 720;
+		public static final int		DESIRE_PREVIEW_HEIGHT		= 1080;
+		public static final int		DESIRE_CAMERA_FPS			= 30;
+
 		private Object				mStartLock					= new Object();
 		private boolean				mReady						= false;
+		private MainHandler			mMainHandler;
 		private RenderHandler		mRenderHandler;
 
 		private int					mCameraId;
@@ -51,11 +60,15 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		private int					mCameraPreviewHeight;
 
 		private Texture2dProgram	mTexProgram;
-		//		private final ScaledDrawable2d	mRectDrawable				= new ScaledDrawable2d(Drawable2d.Prefab.RECTANGLE);
-		//		private final Sprite2d			mRect						= new Sprite2d(mRectDrawable);
+		private final ScaledDrawable2d	mRectDrawable				= new ScaledDrawable2d(Drawable2d.Prefab.RECTANGLE);
+		private final Sprite2d			mRect						= new Sprite2d(mRectDrawable);
 		private SurfaceTexture		mCameraTexture;
 		private float[]				mDisplayProjectionMatrix	= new float[16];
 		private float				mPosX, mPosY;
+
+		public RenderThread(MainHandler mainHandler) {
+			mMainHandler = mainHandler;
+		}
 
 		@Override
 		public void run() {
@@ -67,6 +80,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 				mStartLock.notify();
 			}
 			mEglCore = new EglCore(null, 0);
+			openCamera();
 
 			Looper.loop();
 
@@ -87,14 +101,28 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			if (cameraInstanceAndId == null) {
 				throw new RuntimeException("unable to open camera");
 			}
+			mCamera = cameraInstanceAndId.mCamera;
+			mCameraId = cameraInstanceAndId.mCameraId;
+			CameraInfo info = new CameraInfo();
+			Camera.getCameraInfo(cameraInstanceAndId.mCameraId, info);
 			Parameters parameters = cameraInstanceAndId.mCamera.getParameters();
 			List<Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
-//			Size desiredSize = CameraUtil.selectPreviewSize(desiredWidth, desiredHeight, supportedSize, displayOrientation)
+			if (mMainHandler.getActivity() == null) {
+				throw new NullPointerException("activity from main handler is null");
+			}
+			int displayOrientation = CameraUtil.selectDisplayOrientation(CameraInfo.CAMERA_FACING_BACK, info.orientation, mMainHandler.getActivity().getWindowManager().getDefaultDisplay().getOrientation());
+			Size desiredSize = CameraUtil.selectPreviewSize(DESIRE_PREVIEW_WIDTH, DESIRE_PREVIEW_HEIGHT, supportedPreviewSizes, displayOrientation);
+			int desiredFps = CameraUtil.selectFixedFps(parameters, DESIRE_CAMERA_FPS);
+			parameters.setPreviewSize(desiredSize.width, desiredSize.height);
+			mCamera.setParameters(parameters);
+			mCamera.setDisplayOrientation(displayOrientation);
+
+			mMainHandler.updateUi(desiredSize, desiredFps);
 		}
 
 		@Override
 		public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-
+			mRenderHandler.onFrameAvailable();
 		}
 
 		public RenderHandler getRenderHandler() {
@@ -158,6 +186,22 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			mCamera.startPreview();
 		}
 
+		public void onFrameAvaliable() {
+			mCameraTexture.updateTexImage();
+			draw();
+		}
+
+		private void draw() {
+			GlesUtil.checkError("draw start");
+
+			GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+			mRect.draw(mTexProgram, mDisplayProjectionMatrix);
+			mWindowSurface.swapBuffers();
+
+			GlesUtil.checkError("draw done");
+		}
+
 		private void releaseGl() {
 			GlesUtil.checkError("releaseGl start");
 
@@ -177,6 +221,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 
 	public static class RenderHandler extends Handler {
 		public static final int				MSG_SURFACE_CREATED	= 0;
+		public static final int				MSG_FRAME_AVALIABLE	= 1;
 		private WeakReference<RenderThread>	mRenderThread;
 
 		public RenderHandler(RenderThread thread) {
@@ -194,6 +239,9 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			case MSG_SURFACE_CREATED:
 				mRenderThread.get().surfaceCreated((SurfaceHolder) msg.obj, msg.arg1 == 0 ? false : true);
 				break;
+			case MSG_FRAME_AVALIABLE:
+				mRenderThread.get().onFrameAvaliable();
+				break;
 			default:
 				break;
 			}
@@ -203,14 +251,52 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			Message msg = obtainMessage(MSG_SURFACE_CREATED, newSurface ? 1 : 0, 0, surfaceHolder);
 			sendMessage(msg);
 		}
+
+		public void onFrameAvailable() {
+			sendEmptyMessage(MSG_FRAME_AVALIABLE);
+		}
+	}
+
+	public static class MainHandler extends Handler {
+		public static final int					MSG_UPDATE_UI	= 0;
+		private WeakReference<CameraActivity>	mContext;
+
+		public MainHandler(CameraActivity activity) {
+			mContext = new WeakReference<CameraActivity>(activity);
+		}
+
+		public CameraActivity getActivity() {
+			return mContext.get();
+		}
+
+		@Override
+		public void handleMessage(Message msg) {
+			if (mContext.get() == null) {
+				removeCallbacksAndMessages(null);
+				return;
+			}
+			switch (msg.what) {
+			case MSG_UPDATE_UI:
+
+				break;
+			default:
+				break;
+			}
+		}
+
+		public void updateUi(Size previewSize, int fps) {
+			Message msg = obtainMessage(MSG_UPDATE_UI, fps, 0, previewSize);
+		}
 	}
 
 	public static final String	TAG	= CameraActivity.class.getSimpleName();
 	private SurfaceView			mPreviewSv;
+	private TextView			mPreviewInfoTv;
 	private Button				mRecordVideoBtn;
 	private Button				mTakePictureBtn;
 	private Button				mSwitchCameraBtn;
 
+	private MainHandler			mMainHandler;
 	private RenderThread		mRenderThread;
 
 	@Override
@@ -219,6 +305,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		setContentView(R.layout.camera_activity);
 
 		mPreviewSv = (SurfaceView) findViewById(R.id.preview_sv);
+		mPreviewInfoTv = (TextView) findViewById(R.id.preview_info_tv);
 		mRecordVideoBtn = (Button) findViewById(R.id.record_video_btn);
 		mTakePictureBtn = (Button) findViewById(R.id.take_picture_btn);
 		mSwitchCameraBtn = (Button) findViewById(R.id.switch_camera_btn);
@@ -228,12 +315,14 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		SurfaceHolder surfaceHolder = mPreviewSv.getHolder();
 		LLog.d(TAG, surfaceHolder + "");
 		surfaceHolder.addCallback(this);
+
+		mMainHandler = new MainHandler(this);
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		mRenderThread = new RenderThread();
+		mRenderThread = new RenderThread(mMainHandler);
 		mRenderThread.start();
 		try {
 			mRenderThread.waitUtilReady();
@@ -268,6 +357,14 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 		if (v == mRecordVideoBtn) {
 		} else if (v == mSwitchCameraBtn) {
 		}
+	}
+
+	public void updateUi(Size previewSize, int fps) {
+		LayoutParams lp = mPreviewSv.getLayoutParams();
+		lp.width = previewSize.width;
+		lp.height = previewSize.height;
+		mPreviewSv.setLayoutParams(lp);
+		mPreviewInfoTv.setText("Fps : " + fps);
 	}
 
 }
