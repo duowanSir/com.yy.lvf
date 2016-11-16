@@ -16,13 +16,13 @@ public class EglCore {
 	public static final int		FLAG_TRY_GLES3			= 0x02;
 	public static final int		EGL_RECORDABLE_ANDROID	= 0x3142;
 
-	private EGLDisplay			mEglDisplay;
+	private EGLDisplay			mEglDisplay				= EGL14.EGL_NO_DISPLAY;
 	private EGLConfig			mEglConfig;
-	private EGLContext			mEglContext;
+	private EGLContext			mEglContext				= EGL14.EGL_NO_CONTEXT;
 	private int					mVersion;
 
 	public EglCore(EGLContext sharedEglContext, int flag) {
-		if (mEglDisplay != null) {
+		if (mEglDisplay != EGL14.EGL_NO_DISPLAY) {
 			throw new IllegalStateException("eglDisplay is not null");
 		}
 		mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
@@ -135,7 +135,8 @@ public class EglCore {
 		// pixmapSurface=native pixmap
 		// pixbufferSurface!=native pixbufferSurface
 		// 如果创建的surface要给MediaCodec使用,则参数1中必须包含EGL_RENDERABLE_TYPE属性.
-		EGLSurface eglSurface = EGL14.eglCreateWindowSurface(mEglDisplay, mEglConfig, surface, null, 0);
+		int[] surfaceAttribs = { EGL14.EGL_NONE };
+		EGLSurface eglSurface = EGL14.eglCreateWindowSurface(mEglDisplay, mEglConfig, surface, surfaceAttribs, 0);
 		if (EGL14.eglGetError() != EGL14.EGL_SUCCESS) {
 			throw new IllegalStateException("create window surface failed");
 		}

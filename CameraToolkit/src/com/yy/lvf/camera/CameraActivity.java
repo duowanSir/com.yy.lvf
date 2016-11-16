@@ -27,7 +27,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
@@ -40,31 +39,35 @@ import android.widget.TextView;
 
 public class CameraActivity extends Activity implements OnClickListener, Callback {
 	public static class RenderThread extends Thread implements OnFrameAvailableListener {
-		public static final int		DESIRE_PREVIEW_WIDTH		= 720;
-		public static final int		DESIRE_PREVIEW_HEIGHT		= 1080;
-		public static final int		DESIRE_CAMERA_FPS			= 30;
+		public static final int			DESIRE_PREVIEW_WIDTH		= 720;
+		public static final int			DESIRE_PREVIEW_HEIGHT		= 1080;
+		public static final int			DESIRE_CAMERA_FPS			= 30;
 
-		private Object				mStartLock					= new Object();
-		private boolean				mReady						= false;
-		private MainHandler			mMainHandler;
-		private RenderHandler		mRenderHandler;
+		private Object					mStartLock					= new Object();
+		private boolean					mReady						= false;
+		private MainHandler				mMainHandler;
+		private RenderHandler			mRenderHandler;
 
-		private int					mCameraId;
-		private Camera				mCamera;
+		private int						mCameraId;
+		private Camera					mCamera;
 
-		private EglCore				mEglCore;
-		private WindowSurface		mWindowSurface;
-		private int					mWindowSurfaceWidth;
-		private int					mWindowSurfaceHeight;
-		private int					mCameraPreviewWidth;
-		private int					mCameraPreviewHeight;
+		private EglCore					mEglCore;
+		private WindowSurface			mWindowSurface;
+		private int						mWindowSurfaceWidth;
+		private int						mWindowSurfaceHeight;
+		private int						mCameraPreviewWidth;
+		private int						mCameraPreviewHeight;
 
-		private Texture2dProgram	mTexProgram;
+		private int						mZoomPercent				= 0;
+		private int						mSizePercent				= 50;
+		private int						mRotatePercent				= 0;
+
+		private Texture2dProgram		mTexProgram;
 		private final ScaledDrawable2d	mRectDrawable				= new ScaledDrawable2d(Drawable2d.Prefab.RECTANGLE);
 		private final Sprite2d			mRect						= new Sprite2d(mRectDrawable);
-		private SurfaceTexture		mCameraTexture;
-		private float[]				mDisplayProjectionMatrix	= new float[16];
-		private float				mPosX, mPosY;
+		private SurfaceTexture			mCameraTexture;
+		private float[]					mDisplayProjectionMatrix	= new float[16];
+		private float					mPosX, mPosY;
 
 		public RenderThread(MainHandler mainHandler) {
 			mMainHandler = mainHandler;
@@ -112,6 +115,8 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			}
 			int displayOrientation = CameraUtil.selectDisplayOrientation(CameraInfo.CAMERA_FACING_BACK, info.orientation, mMainHandler.getActivity().getWindowManager().getDefaultDisplay().getOrientation());
 			Size desiredSize = CameraUtil.selectPreviewSize(DESIRE_PREVIEW_WIDTH, DESIRE_PREVIEW_HEIGHT, supportedPreviewSizes, displayOrientation);
+			mCameraPreviewWidth = desiredSize.width;
+			mCameraPreviewHeight = desiredSize.height;
 			int desiredFps = CameraUtil.selectFixedFps(parameters, DESIRE_CAMERA_FPS);
 			parameters.setPreviewSize(desiredSize.width, desiredSize.height);
 			mCamera.setParameters(parameters);
@@ -134,16 +139,11 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			mWindowSurface = new WindowSurface(mEglCore, surface, false);
 			mWindowSurface.makeCurrent();
 
-			mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT);
+			mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT_BW);
 			int textureId = mTexProgram.createTextureObject();
 			mCameraTexture = new SurfaceTexture(textureId);
-			//			mRect.setTexture(textureId);
+			mRect.setTexture(textureId);
 			if (!newSurface) {
-				// This Surface was established on a previous run, so no surfaceChanged()
-				// message is forthcoming.  Finish the surface setup now.
-				//
-				// We could also just call this unconditionally, and perhaps do an unnecessary
-				// bit of reallocating if a surface-changed message arrives.
 				mWindowSurfaceWidth = mWindowSurface.getWidth();
 				mWindowSurfaceHeight = mWindowSurface.getHeight();
 				finishSurfaceSetup();
@@ -164,26 +164,49 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			int height = mWindowSurfaceHeight;
 			LLog.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
 
-			// Use full window.
-			GLES20.glViewport(0, 0, width, height);
-
-			// Simple orthographic projection(正投影), with (0,0) in lower-left corner.
+			// 正交投影
 			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
+			GLES20.glViewport(0, 0, width, height);
 
 			// Default position is center of screen.
 			mPosX = width / 2.0f;
 			mPosY = height / 2.0f;
 
-			//			updateGeometry();
+			updateGeometry();
 
 			// Ready to go, start the camera.
-			Log.d(TAG, "starting camera preview");
+			LLog.d(TAG, "starting camera preview");
 			try {
 				mCamera.setPreviewTexture(mCameraTexture);
 			} catch (IOException ioe) {
 				throw new RuntimeException(ioe);
 			}
 			mCamera.startPreview();
+		}
+
+		private void updateGeometry() {
+			int width = mWindowSurfaceWidth;
+			int height = mWindowSurfaceHeight;
+
+			int smallDim = Math.min(width, height);
+			// Max scale is a bit larger than the screen, so we can show over-size.
+			float scaled = smallDim * (mSizePercent / 100.0f) * 1.25f;
+			float cameraAspect = (float) mCameraPreviewWidth / mCameraPreviewHeight;
+			int newWidth = Math.round(scaled * cameraAspect);
+			int newHeight = Math.round(scaled);
+
+			float zoomFactor = 1.0f - (mZoomPercent / 100.0f);
+			int rotAngle = Math.round(360 * (mRotatePercent / 100.0f));
+
+			mRect.setScale(newWidth, newHeight);
+			mRect.setPosition(mPosX, mPosY);
+			mRect.setRotation(rotAngle);
+			mRectDrawable.setScale(zoomFactor);
+
+			//            mMainHandler.sendRectSize(newWidth, newHeight);
+			//            mMainHandler.sendZoomArea(Math.round(mCameraPreviewWidth * zoomFactor),
+			//                    Math.round(mCameraPreviewHeight * zoomFactor));
+			//            mMainHandler.sendRotateDeg(rotAngle);
 		}
 
 		public void onFrameAvaliable() {
@@ -222,6 +245,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 	public static class RenderHandler extends Handler {
 		public static final int				MSG_SURFACE_CREATED	= 0;
 		public static final int				MSG_FRAME_AVALIABLE	= 1;
+		public static final int				MSG_SURFACE_CHANGED	= 2;
 		private WeakReference<RenderThread>	mRenderThread;
 
 		public RenderHandler(RenderThread thread) {
@@ -242,6 +266,9 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			case MSG_FRAME_AVALIABLE:
 				mRenderThread.get().onFrameAvaliable();
 				break;
+			case MSG_SURFACE_CHANGED:
+				mRenderThread.get().surfaceChanged(msg.arg1, msg.arg2);
+				break;
 			default:
 				break;
 			}
@@ -249,6 +276,11 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 
 		public void surfaceCreated(SurfaceHolder surfaceHolder, boolean newSurface) {
 			Message msg = obtainMessage(MSG_SURFACE_CREATED, newSurface ? 1 : 0, 0, surfaceHolder);
+			sendMessage(msg);
+		}
+
+		public void surfaceChanged(int width, int height) {
+			Message msg = obtainMessage(MSG_SURFACE_CHANGED, width, height);
 			sendMessage(msg);
 		}
 
@@ -277,7 +309,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 			}
 			switch (msg.what) {
 			case MSG_UPDATE_UI:
-
+				mContext.get().updateUi((Size) msg.obj, msg.arg1);
 				break;
 			default:
 				break;
@@ -286,6 +318,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 
 		public void updateUi(Size previewSize, int fps) {
 			Message msg = obtainMessage(MSG_UPDATE_UI, fps, 0, previewSize);
+			sendMessage(msg);
 		}
 	}
 
@@ -345,6 +378,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 		LLog.d(TAG, "surfaceChanged(" + holder + ", " + format + ", " + width + ", " + height + ")");
+		mRenderThread.getRenderHandler().surfaceChanged(width, height);
 	}
 
 	@Override
@@ -360,6 +394,7 @@ public class CameraActivity extends Activity implements OnClickListener, Callbac
 	}
 
 	public void updateUi(Size previewSize, int fps) {
+		LLog.d(TAG, "updateUi(previewSize:[" + previewSize.width + ", " + previewSize.height + "]" + ", " + fps + ")");
 		LayoutParams lp = mPreviewSv.getLayoutParams();
 		lp.width = previewSize.width;
 		lp.height = previewSize.height;

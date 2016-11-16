@@ -259,6 +259,10 @@ public class Texture2dProgram {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(mTextureTarget, textureId);
 
+		/**
+		 * glUniform - 为当前program指定统一变量的值
+		 */
+        
         // Copy the model / view / projection matrix over.
         GLES20.glUniformMatrix4fv(muMVPMatrixLoc, 1, false, mvpMatrix, 0);
         GlesUtil.checkError("glUniformMatrix4fv");
