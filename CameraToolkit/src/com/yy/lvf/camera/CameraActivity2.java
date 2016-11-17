@@ -32,17 +32,13 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
-import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
-import android.widget.Button;
-import android.widget.TextView;
 
 public class CameraActivity2 extends Activity implements Callback {
 	public static class RenderThread extends Thread implements OnFrameAvailableListener {
 		public static final int			DESIRE_PREVIEW_WIDTH		= 720;
 		public static final int			DESIRE_PREVIEW_HEIGHT		= 1080;
-		public static final int			DESIRE_CAMERA_FPS			= 30;
+		public static final int			DESIRE_CAMERA_FPS			= 15;
 
 		private Object					mStartLock					= new Object();
 		private boolean					mReady						= false;
@@ -60,8 +56,9 @@ public class CameraActivity2 extends Activity implements Callback {
 		private int						mCameraPreviewHeight		= 720;
 
 		private int						mZoomPercent				= 0;
-		private int						mSizePercent				= 50;
+		private int						mSizePercent				= 100;
 		private int						mRotatePercent				= 0;
+		private int						mRotate;
 
 		private ProgramType				mProgramType;
 		private Texture2dProgram		mTexProgram;
@@ -84,6 +81,7 @@ public class CameraActivity2 extends Activity implements Callback {
 			super.run();
 			Looper.prepare();
 			mRenderHandler = new RenderHandler(this);
+			// mStartLock的wait/notify是否对mRenderHandler跨越内存栅栏有效暂时搁置讨论
 			synchronized (mStartLock) {
 				mReady = true;
 				mStartLock.notify();
@@ -95,6 +93,7 @@ public class CameraActivity2 extends Activity implements Callback {
 
 			Looper.loop();
 
+			releaseCamera();
 			releaseGl();
 			mEglCore.release();
 		}
@@ -121,16 +120,16 @@ public class CameraActivity2 extends Activity implements Callback {
 			if (mMainHandler.getActivity() == null) {
 				throw new NullPointerException("activity from main handler is null");
 			}
-			int displayOrientation = CameraUtil.selectDisplayOrientation(CameraInfo.CAMERA_FACING_BACK, info.orientation, mMainHandler.getActivity().getWindowManager().getDefaultDisplay().getOrientation());
-			Size desiredSize = CameraUtil.selectPreviewSize(DESIRE_PREVIEW_WIDTH, DESIRE_PREVIEW_HEIGHT, supportedPreviewSizes, displayOrientation);
+			mRotate = CameraUtil.selectDisplayOrientation(CameraInfo.CAMERA_FACING_BACK, info.orientation, mMainHandler.getActivity().getWindowManager().getDefaultDisplay().getOrientation());
+
+			Size desiredSize = CameraUtil.selectPreviewSize(DESIRE_PREVIEW_WIDTH, DESIRE_PREVIEW_HEIGHT, supportedPreviewSizes, mRotate);
 			mCameraPreviewWidth = desiredSize.width;
 			mCameraPreviewHeight = desiredSize.height;
 			int desiredFps = CameraUtil.selectFixedFps(parameters, DESIRE_CAMERA_FPS);
 			parameters.setPreviewSize(desiredSize.width, desiredSize.height);
 			mCamera.setParameters(parameters);
-			mCamera.setDisplayOrientation(displayOrientation);
 
-			mMainHandler.updateUi(desiredSize, desiredFps);
+			mMainHandler.updateUi(mRotate, desiredSize, desiredFps);
 		}
 
 		@Override
@@ -173,7 +172,7 @@ public class CameraActivity2 extends Activity implements Callback {
 		private void finishSurfaceSetup() {
 			int width = mWindowSurfaceWidth;
 			int height = mWindowSurfaceHeight;
-			LLog.d(TAG, "finishSurfaceSetup size=" + width + "x" + height + " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
+			LLog.d(TAG, "surface[" + width + ", " + height + "], " + "cameraPreview[" + mCameraPreviewWidth + ", " + mCameraPreviewHeight + "]");
 
 			// 正交投影
 			Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
@@ -185,7 +184,6 @@ public class CameraActivity2 extends Activity implements Callback {
 
 			updateGeometry();
 
-			// Ready to go, start the camera.
 			if (mOwnCamera) {
 				LLog.d(TAG, "starting camera preview");
 				try {
@@ -213,7 +211,7 @@ public class CameraActivity2 extends Activity implements Callback {
 
 			mRect.setScale(newWidth, newHeight);
 			mRect.setPosition(mPosX, mPosY);
-			mRect.setRotation(rotAngle);
+			mRect.setRotation(270);
 			mRectDrawable.setScale(zoomFactor);
 		}
 
@@ -241,9 +239,16 @@ public class CameraActivity2 extends Activity implements Callback {
 			GlesUtil.checkError("draw done");
 		}
 
+		private void releaseCamera() {
+			if (mCamera != null) {
+				mCamera.stopPreview();
+				mCamera.release();
+				mCamera = null;
+			}
+		}
+
 		private void releaseGl() {
 			GlesUtil.checkError("releaseGl start");
-
 			if (mWindowSurface != null) {
 				mWindowSurface.release();
 				mWindowSurface = null;
@@ -253,8 +258,11 @@ public class CameraActivity2 extends Activity implements Callback {
 				mTexProgram = null;
 			}
 			GlesUtil.checkError("releaseGl done");
-
 			mEglCore.makeNothingCurrent();
+		}
+
+		private void shutdown() {
+			Looper.myLooper().quit();
 		}
 	}
 
@@ -262,6 +270,7 @@ public class CameraActivity2 extends Activity implements Callback {
 		public static final int				MSG_SURFACE_CREATED	= 0;
 		public static final int				MSG_FRAME_AVALIABLE	= 1;
 		public static final int				MSG_SURFACE_CHANGED	= 2;
+		public static final int				MSG_SHUT_DOWN		= 3;
 		private WeakReference<RenderThread>	mRenderThread;
 
 		public RenderHandler(RenderThread thread) {
@@ -285,6 +294,9 @@ public class CameraActivity2 extends Activity implements Callback {
 			case MSG_SURFACE_CHANGED:
 				mRenderThread.get().surfaceChanged(msg.arg1, msg.arg2);
 				break;
+			case MSG_SHUT_DOWN:
+				mRenderThread.get().shutdown();
+				break;
 			default:
 				break;
 			}
@@ -303,6 +315,10 @@ public class CameraActivity2 extends Activity implements Callback {
 		public void onFrameAvailable(SurfaceTexture st) {
 			Message msg = obtainMessage(MSG_FRAME_AVALIABLE, st);
 			sendMessage(msg);
+		}
+
+		public void shutDown() {
+			sendEmptyMessage(MSG_SHUT_DOWN);
 		}
 	}
 
@@ -327,7 +343,7 @@ public class CameraActivity2 extends Activity implements Callback {
 			}
 			switch (msg.what) {
 			case MSG_UPDATE_UI:
-				mContext.get().updateUi((Size) msg.obj, msg.arg1);
+				mContext.get().updateUi(msg.arg1, (Size) msg.obj, msg.arg2);
 				break;
 			case MSG_FRAME_AVALIABLE:
 				mContext.get().mRenderThread.getRenderHandler().onFrameAvailable((SurfaceTexture) msg.obj);
@@ -338,8 +354,8 @@ public class CameraActivity2 extends Activity implements Callback {
 			}
 		}
 
-		public void updateUi(Size previewSize, int fps) {
-			Message msg = obtainMessage(MSG_UPDATE_UI, fps, 0, previewSize);
+		public void updateUi(int rotation, Size previewSize, int fps) {
+			Message msg = obtainMessage(MSG_UPDATE_UI, rotation, fps, previewSize);
 			sendMessage(msg);
 		}
 
@@ -350,6 +366,10 @@ public class CameraActivity2 extends Activity implements Callback {
 	}
 
 	public static final String	TAG	= CameraActivity2.class.getSimpleName();
+
+	private SurfaceHolder		mSurfaceHolder;
+	private SurfaceHolder		mSurfaceHolder1;
+
 	private SurfaceView			mPreviewSv;
 	private SurfaceView			mPreviewSv1;
 
@@ -389,19 +409,36 @@ public class CameraActivity2 extends Activity implements Callback {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+
+		if (mSurfaceHolder != null) {
+			mRenderThread.getRenderHandler().surfaceCreated(mSurfaceHolder, false);
+		}
+		if (mSurfaceHolder1 != null) {
+			mRenderThread1.getRenderHandler().surfaceCreated(mSurfaceHolder1, false);
+		}
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
+		mRenderThread.getRenderHandler().shutDown();
+		mRenderThread1.getRenderHandler().shutDown();
+		try {
+			mRenderThread.join(100);
+			mRenderThread1.join(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		LLog.d(TAG, "surfaceCreated(" + holder + ", " + Thread.currentThread() + ")");
+		LLog.d(TAG, "surfaceCreated(" + holder + ")");
 		if (holder == mPreviewSv.getHolder()) {
+			mSurfaceHolder = holder;
 			mRenderThread.getRenderHandler().surfaceCreated(holder, true);
 		} else {
+			mSurfaceHolder1 = holder;
 			mRenderThread1.getRenderHandler().surfaceCreated(holder, true);
 		}
 	}
@@ -419,15 +456,31 @@ public class CameraActivity2 extends Activity implements Callback {
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		LLog.d(TAG, "surfaceDestroyed(" + holder + ")");
+		if (holder == mSurfaceHolder) {
+			mSurfaceHolder = null;
+		} else {
+			mSurfaceHolder1 = null;
+		}
 	}
 
-	public void updateUi(Size previewSize, int fps) {
-		LLog.d(TAG, "updateUi(previewSize:[" + previewSize.width + ", " + previewSize.height + "]" + ", " + fps + ")");
+	public void updateUi(int rotate, Size previewSize, int fps) {
+		LLog.d(TAG, "updateUi(previewSize[" + previewSize.width + ", " + previewSize.height + "]" + ", " + fps + ")");
 		LayoutParams lp = mPreviewSv.getLayoutParams();
-		lp.width = previewSize.width;
-		lp.height = previewSize.height;
+		LayoutParams lp1 = mPreviewSv1.getLayoutParams();
+		if (rotate == 0 || rotate == 180) {
+			lp.width = previewSize.width;
+			lp.height = previewSize.height;
+			lp1.width = previewSize.width;
+			lp1.height = previewSize.height;
+		} else {
+			lp.width = previewSize.height;
+			lp.height = previewSize.width;
+			lp1.width = previewSize.height;
+			lp1.height = previewSize.width;
+		}
+
 		mPreviewSv.setLayoutParams(lp);
-		//		mPreviewInfoTv.setText("Fps : " + fps);
+		mPreviewSv1.setLayoutParams(lp1);
 	}
 
 }
