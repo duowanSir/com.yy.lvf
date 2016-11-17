@@ -12,18 +12,7 @@
         android:id="@+id/preview_sv1"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:layout_toRightOf="@id/preview_sv0" />
-
-    <SurfaceView
-        android:id="@+id/preview_sv2"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_toRightOf="@id/preview_sv1" />
-
-    <SurfaceView
-        android:id="@+id/preview_sv3"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_below="@id/preview_sv0" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true" />
 
 </RelativeLayout>

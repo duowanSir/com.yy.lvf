@@ -13,6 +13,7 @@ import com.yy.lvf.mygles.GlesUtil;
 import com.yy.lvf.mygles.ScaledDrawable2d;
 import com.yy.lvf.mygles.Sprite2d;
 import com.yy.lvf.mygles.Texture2dProgram;
+import com.yy.lvf.mygles.Texture2dProgram.ProgramType;
 
 import android.app.Activity;
 import android.graphics.SurfaceTexture;
@@ -55,13 +56,14 @@ public class CameraActivity2 extends Activity implements Callback {
 		private WindowSurface			mWindowSurface;
 		private int						mWindowSurfaceWidth;
 		private int						mWindowSurfaceHeight;
-		private int						mCameraPreviewWidth;
-		private int						mCameraPreviewHeight;
+		private int						mCameraPreviewWidth			= 960;
+		private int						mCameraPreviewHeight		= 720;
 
 		private int						mZoomPercent				= 0;
 		private int						mSizePercent				= 50;
 		private int						mRotatePercent				= 0;
 
+		private ProgramType				mProgramType;
 		private Texture2dProgram		mTexProgram;
 		private final ScaledDrawable2d	mRectDrawable				= new ScaledDrawable2d(Drawable2d.Prefab.RECTANGLE);
 		private final Sprite2d			mRect						= new Sprite2d(mRectDrawable);
@@ -71,8 +73,9 @@ public class CameraActivity2 extends Activity implements Callback {
 		private float[]					mDisplayProjectionMatrix	= new float[16];
 		private float					mPosX, mPosY;
 
-		public RenderThread(MainHandler mainHandler, boolean ownCamera) {
+		public RenderThread(MainHandler mainHandler, ProgramType programType, boolean ownCamera) {
 			mMainHandler = mainHandler;
+			mProgramType = programType;
 			mOwnCamera = ownCamera;
 		}
 
@@ -144,7 +147,7 @@ public class CameraActivity2 extends Activity implements Callback {
 			mWindowSurface = new WindowSurface(mEglCore, surface, false);
 			mWindowSurface.makeCurrent();
 
-			mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT_BW);
+			mTexProgram = new Texture2dProgram(mProgramType);
 			mTextureId = mTexProgram.createTextureObject();
 			if (mOwnCamera) {
 				mCameraTexture = new SurfaceTexture(mTextureId);
@@ -216,7 +219,7 @@ public class CameraActivity2 extends Activity implements Callback {
 
 		public void onFrameAvaliable(SurfaceTexture st) {
 			synchronized (TAG) {
-				LLog.d(TAG, Thread.currentThread() + " rendering");
+				//				LLog.d(TAG, Thread.currentThread() + " rendering " + mTextureId);
 				if (!mOwnCamera) {
 					mCameraTexture = st;
 				}
@@ -371,7 +374,7 @@ public class CameraActivity2 extends Activity implements Callback {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		mRenderThread = new RenderThread(mMainHandler, true);
+		mRenderThread = new RenderThread(mMainHandler, ProgramType.TEXTURE_EXT, true);
 		mRenderThread.start();
 		try {
 			mRenderThread.waitUtilReady();
@@ -379,7 +382,7 @@ public class CameraActivity2 extends Activity implements Callback {
 			e.printStackTrace();
 		}
 
-		mRenderThread1 = new RenderThread(mMainHandler, false);
+		mRenderThread1 = new RenderThread(mMainHandler, ProgramType.TEXTURE_EXT_BW, false);
 		mRenderThread1.start();
 		try {
 			mRenderThread1.waitUtilReady();
