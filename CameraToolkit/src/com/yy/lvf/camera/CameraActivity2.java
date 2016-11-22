@@ -391,6 +391,27 @@ public class CameraActivity2 extends Activity implements Callback {
 		mMainHandler = new MainHandler(this);
 	}
 
+	//	public void test() {
+	//		EGL egl = javax.microedition.khronos.egl.EGLContext.getEGL();
+	//		boolean b = (egl instanceof EGL10);
+	//		boolean b1 = (egl instanceof EGL11);
+	//		LLog.d(TAG, b + ", " + b1);
+	//		EGL10 egl10 = (EGL10) egl;
+	//		EGLDisplay eglDisplay = egl10.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
+	//		checkEglError(egl10, "eglGetDisplay");
+	//		int[] version = new int[2];
+	//		egl10.eglInitialize(eglDisplay, version);
+	//		checkEglError(egl10, "eglInitialize");
+	//		
+	//	}
+	//
+	//	public void checkEglError(EGL10 egl, String opt) {
+	//		int error = egl.eglGetError();
+	//		if (error != EGL10.EGL_SUCCESS) {
+	//			throw new RuntimeException(opt + " failed");
+	//		}
+	//	}
+
 	@Override
 	protected void onResume() {
 		super.onResume();
