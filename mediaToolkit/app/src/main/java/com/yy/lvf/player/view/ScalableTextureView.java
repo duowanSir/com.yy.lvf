@@ -16,15 +16,15 @@ public class ScalableTextureView extends TextureView {
     }
 
     public static final String TAG = ScalableTextureView.class.getSimpleName();
-    private Integer mContentWidth;
-    private Integer mContentHeight;
+    protected Integer mContentWidth;
+    protected Integer mContentHeight;
+    protected int     mMeasureWidth;
+    protected int     mMeasureHeight;
     private Integer mContentOrientation = 0;
-    private int mMeasureWidth;
-    private int mMeasureHeight;
     private ScaleType mScaleType;
-    private float mPivotX;
-    private float mPivotY;
-    private float mRotation;
+    private float     mPivotX;
+    private float     mPivotY;
+    private float     mRotation;
 
     public ScalableTextureView(Context context) {
         this(context, null);
