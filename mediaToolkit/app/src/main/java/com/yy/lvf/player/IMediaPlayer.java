@@ -1,9 +1,24 @@
 package com.yy.lvf.player;
 
+import android.content.Context;
+import android.net.Uri;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+
+import java.util.Map;
+
 /**
  * Created by slowergun on 2016/11/23.
  */
 public interface IMediaPlayer {
+    void setDataSource(Context context, Uri uri);
+
+    void setDataSource(Context context, Uri uri, Map<String, String> headers);
+
+    void setSurface(Surface surface);
+
+    void setSurfaceHolder(SurfaceHolder holder);
+
     void prepare();
 
     void prepareAsync();

@@ -1,4 +1,4 @@
-package com.yy.lvf.player;
+package com.yy.lvf.player.demo;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 
 import com.yy.lvf.R;
+import com.yy.lvf.player.demo.VideoSourceAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,9 +20,9 @@ import java.util.List;
 public class VideoSourceFragment extends Fragment {
     private String mVideo = "http://v1.dwstatic.com/zbsq/bidraft/e35612b7a9c9ae64d7d67a5c32662260.mp4";
     //    private String mVideo = "http://v1.dwstatic.com/zbsq/bidraft/8d74f6d983b11b6edc1d9f5d14d471a4.mp4";
-    private ListView mLv;
+    private ListView           mLv;
     private VideoSourceAdapter mAdapter;
-    private List<String> mData;
+    private List<String>       mData;
 
     @Nullable
     @Override

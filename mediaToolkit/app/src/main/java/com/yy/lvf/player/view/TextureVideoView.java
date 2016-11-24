@@ -2,8 +2,10 @@ package com.yy.lvf.player.view;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.util.AttributeSet;
+import android.view.Surface;
 import android.view.TextureView;
 
 import com.yy.lvf.LLog;
@@ -39,9 +41,9 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
     private int mCurrentState = STATE_IDLE;
     private int mTargetState  = STATE_IDLE;
 
-    private SurfaceTexture mSurfaceTexture;
-    private IMediaPlayer   mMediaPlayer;
-    private int            mAudioSession;
+    private Surface      mSurface;
+    private IMediaPlayer mMediaPlayer;
+    private int          mAudioSession;
 
     private int     mCurrentBufferPercentage;
     private int     mSeekWhenPrepared;// preparing状态时,记下seek的位置.
@@ -103,7 +105,7 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         LLog.d(TAG, "onSurfaceTextureAvailable(" + surface + ", " + width + ", " + height + ")");
-        mSurfaceTexture = surface;
+        mSurface = new Surface(surface);
         openVideo();
     }
 
@@ -114,7 +116,7 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-        mSurfaceTexture = null;
+        mSurface = null;
         release(true);
         return true;
     }
@@ -178,15 +180,22 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         int videoHeight = mp.getVideoHeight();
         if (videoWidth != 0 && videoHeight != 0) {
             setContentSize(videoWidth, videoHeight);
+        } else {
+            if (mTargetState == STATE_PLAYING) {
+                start();
+            }
         }
     }
 
     private void openVideo() {
-        if (mUri == null || mSurfaceTexture == null) {
+        if (mUri == null || mSurface == null) {
             LLog.d(TAG, getTextureVideoViewLog());
             return;
         }
         release(false);
+
+        AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
         mMediaPlayer = null;
         /*
@@ -201,8 +210,19 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         mMediaPlayer.setOnErrorListener(this);
         mMediaPlayer.setOnBufferingUpdateListener(this);
         mMediaPlayer.setOnInfoListener(this);
+        mCurrentBufferPercentage = 0;
+        mMediaPlayer.setDataSource(getContext(), mUri, mHeaders);
+        mMediaPlayer.setSurface(mSurface);
         mMediaPlayer.prepareAsync();
         mCurrentState = STATE_PREPARING;
+//        attachMediaController();
+    }
+
+    private boolean isInPlaybackState() {
+        return (mMediaPlayer != null &&
+                mCurrentState != STATE_ERROR &&
+                mCurrentState != STATE_IDLE &&
+                mCurrentState != STATE_PREPARING);
     }
 
     private void release(boolean clearTargetState) {
@@ -215,12 +235,22 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
 
     @Override
     public void start() {
-
+        if (isInPlaybackState()) {
+            mMediaPlayer.start();
+            mCurrentState = STATE_PLAYING;
+        }
+        mTargetState = STATE_PLAYING;
     }
 
     @Override
     public void pause() {
-
+        if (isInPlaybackState()) {
+            if (mMediaPlayer.isPlaying()) {
+                mMediaPlayer.pause();
+                mCurrentState = STATE_PAUSED;
+            }
+        }
+        mTargetState = STATE_PAUSED;
     }
 
     @Override
@@ -272,7 +302,7 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         StringBuilder sb = new StringBuilder();
         sb.append("[").
                 append(mUri).append("\n").
-                append(mSurfaceTexture).append(", ").append(mMediaPlayer).append("\n").
+                append(mSurface).append(", ").append(mMediaPlayer).append("\n").
                 append("state:[").append(mCurrentState).append(", ").append(mTargetState).append("]").append("\n").
                 append("size:[").append(mContentWidth).append(", ").append(mContentHeight).append(", ").append(mMeasureWidth).append(", ").append(mMeasureHeight).append("]").append("\n").
                 append(mCurrentBufferPercentage).append(", ").append(mSeekWhenPrepared).append(", ").append(mCanPause).append(", ").append(mCanSeekBack).append(", ").append(mCanSeekForward).

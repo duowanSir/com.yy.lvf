@@ -1,10 +1,11 @@
-package com.yy.lvf;
+package com.yy.lvf.player.demo;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 
-import com.yy.lvf.player.VideoSourceFragment;
+import com.yy.lvf.R;
+import com.yy.lvf.player.demo.VideoSourceFragment;
 
 
 /**

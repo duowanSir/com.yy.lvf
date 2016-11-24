@@ -1,4 +1,4 @@
-package com.yy.lvf.player;
+package com.yy.lvf.player.demo;
 
 import android.app.Activity;
 import android.graphics.Rect;
