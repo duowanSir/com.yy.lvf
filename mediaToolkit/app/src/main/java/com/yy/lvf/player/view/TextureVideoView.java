@@ -9,10 +9,12 @@ import android.view.Surface;
 import android.view.TextureView;
 
 import com.yy.lvf.LLog;
+import com.yy.lvf.player.IMediaController;
 import com.yy.lvf.player.IMediaPlayer;
 import com.yy.lvf.player.IMediaPlayerControl;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by slowergun on 2016/11/23.
@@ -24,7 +26,9 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         IMediaPlayer.OnErrorListener,
         IMediaPlayer.OnBufferingUpdateListener,
         IMediaPlayer.OnInfoListener {
-    public static final String TAG = TextureVideoView.class.getSimpleName();
+    public static final  String   TAG                = TextureVideoView.class.getSimpleName();
+    private static final int      TRY_LOCK_TIME_OUT  = 10;
+    private static final TimeUnit TRY_LOCK_TIME_UNIT = TimeUnit.MILLISECONDS;
     // settable by the client
     private Uri                 mUri;
     private Map<String, String> mHeaders;
@@ -41,9 +45,10 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
     private int mCurrentState = STATE_IDLE;
     private int mTargetState  = STATE_IDLE;
 
-    private Surface      mSurface;
-    private IMediaPlayer mMediaPlayer;
-    private int          mAudioSession;
+    private Surface          mSurface;
+    private IMediaController mMediaController;
+    private IMediaPlayer     mMediaPlayer;
+    private int              mAudioSession;
 
     private int     mCurrentBufferPercentage;
     private int     mSeekWhenPrepared;// preparing状态时,记下seek的位置.
@@ -60,7 +65,7 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
     private IMediaPlayer.OnInfoListener            mOnInfoListener;
 
     public TextureVideoView(Context context) {
-        super(context, null);
+        this(context, null);
     }
 
     public TextureVideoView(Context context, AttributeSet attrs) {
@@ -111,7 +116,14 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
 
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
+        LLog.d(TAG, "onSurfaceTextureSizeChanged(" + surface + ", " + width + ", " + height + ")");
+        LLog.d(TAG, getTextureVideoViewLog());
+        if (mTargetState == STATE_PLAYING) {
+            if (mSeekWhenPrepared != 0) {
+                seekTo(mSeekWhenPrepared);
+            }
+            start();
+        }
     }
 
     @Override
@@ -123,7 +135,6 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
 
     @Override
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-
     }
 
     @Override
@@ -168,10 +179,9 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         if (mOnPreparedListener != null) {
             mOnPreparedListener.onPrepared(mp);
         }
-        /*media controller需要做的事情*/
-//        if (mMediaController != null) {
-//            mMediaController.setEnabled(true);
-//        }
+        if (mMediaController != null) {
+            mMediaController.setEnable(true);
+        }
         if (mSeekWhenPrepared != 0) {
             seekTo(mSeekWhenPrepared);
             mSeekWhenPrepared = 0;
@@ -180,26 +190,35 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         int videoHeight = mp.getVideoHeight();
         if (videoWidth != 0 && videoHeight != 0) {
             setContentSize(videoWidth, videoHeight);
-        } else {
             if (mTargetState == STATE_PLAYING) {
                 start();
+                if (mMediaController != null) {
+                    mMediaController.show();
+                }
+                /*
+                * 这里有一些逻辑省略*/
             }
         }
     }
 
     private void openVideo() {
         if (mUri == null || mSurface == null) {
-            LLog.d(TAG, getTextureVideoViewLog());
             return;
+            LLog.d(TAG, getTextureVideoViewLog());
         }
+        /*
+        * 已经播放过视频
+        * 重新设置url,并播放.
+        * surface创建比较靠后
+        * */
         release(false);
 
         AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
         mMediaPlayer = null;
-        /*
-        * 字幕功能先忽略*/
+                    /*
+                    * 字幕功能先忽略*/
         if (mAudioSession != 0) {
             mMediaPlayer.setAudioSessionId(mAudioSession);
         } else {
@@ -214,8 +233,9 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         mMediaPlayer.setDataSource(getContext(), mUri, mHeaders);
         mMediaPlayer.setSurface(mSurface);
         mMediaPlayer.prepareAsync();
+        // 这里不设置mTargetState的任一状态
         mCurrentState = STATE_PREPARING;
-//        attachMediaController();
+        attachMediaController();
     }
 
     private boolean isInPlaybackState() {
@@ -225,11 +245,19 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
                 mCurrentState != STATE_PREPARING);
     }
 
-    private void release(boolean clearTargetState) {
+    @Override
+    public void release(boolean clearTargetState) {
         if (mMediaPlayer != null) {
             mMediaPlayer.reset();
             mMediaPlayer.release();
             mMediaPlayer = null;
+            mSurface = null;
+            mCurrentState = STATE_IDLE;
+            if (clearTargetState) {
+                mTargetState = STATE_IDLE;
+            }
+            AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            am.abandonAudioFocus(null);
         }
     }
 
@@ -250,52 +278,68 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
                 mCurrentState = STATE_PAUSED;
             }
         }
-        mTargetState = STATE_PAUSED;
     }
 
     @Override
     public int getDuration() {
+        if (isInPlaybackState()) {
+            return (int) mMediaPlayer.getDuration();
+        }
         return 0;
     }
 
     @Override
     public int getCurrentPosition() {
+        if (isInPlaybackState()) {
+            return (int) mMediaPlayer.getCurrentPosition();
+        }
         return 0;
     }
 
     @Override
     public void seekTo(int pos) {
-
+        if (isInPlaybackState()) {
+            mMediaPlayer.seekTo(pos);
+            mSeekWhenPrepared = 0;
+        } else {
+            mSeekWhenPrepared = pos;
+        }
     }
 
     @Override
     public boolean isPlaying() {
+        if (isInPlaybackState()) {
+            return mMediaPlayer.isPlaying();
+        }
         return false;
     }
 
     @Override
     public int getBufferPercentage() {
+        if (mMediaPlayer != null) {
+            return mCurrentBufferPercentage;
+        }
         return 0;
     }
 
     @Override
     public boolean canPause() {
-        return false;
+        return mCanPause;
     }
 
     @Override
     public boolean canSeekBackward() {
-        return false;
+        return mCanSeekBack;
     }
 
     @Override
     public boolean canSeekForward() {
-        return false;
+        return mCanSeekForward;
     }
 
     @Override
     public int getAudioSessionId() {
-        return 0;
+        return mAudioSession;
     }
 
     private String getTextureVideoViewLog() {
