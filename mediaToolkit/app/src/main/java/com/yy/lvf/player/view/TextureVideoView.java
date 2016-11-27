@@ -7,6 +7,8 @@ import android.net.Uri;
 import android.util.AttributeSet;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
+import android.view.ViewParent;
 
 import com.yy.lvf.LLog;
 import com.yy.lvf.player.IMediaController;
@@ -203,8 +205,8 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
 
     private void openVideo() {
         if (mUri == null || mSurface == null) {
-            return;
             LLog.d(TAG, getTextureVideoViewLog());
+            return;
         }
         /*
         * 已经播放过视频
@@ -236,6 +238,20 @@ public class TextureVideoView extends ScalableTextureView implements IMediaPlaye
         // 这里不设置mTargetState的任一状态
         mCurrentState = STATE_PREPARING;
         attachMediaController();
+    }
+
+    private void attachMediaController() {
+        if (mMediaController == null) {
+            return;
+        }
+        boolean enable = isInPlaybackState();
+        mMediaController.setEnable(enable);
+        ViewParent parent = getParent();
+        mMediaController.setAnchor((View) parent);
+    }
+
+    private void setMediaController(IMediaController mediaController) {
+        mMediaController = mediaController;
     }
 
     private boolean isInPlaybackState() {
