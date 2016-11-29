@@ -32,7 +32,7 @@ public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScr
 
     }
 
-    public static enum Type {
+    public enum Type {
         VIDEO
     }
 

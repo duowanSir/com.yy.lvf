@@ -18,10 +18,10 @@ import java.util.List;
  * Created by slowergun on 2016/11/3.
  */
 public class VideoSourceFragment extends Fragment {
-    private String mVideo = "http://v1.dwstatic.com/zbsq/bidraft/e35612b7a9c9ae64d7d67a5c32662260.mp4";
-    //    private String mVideo = "http://v1.dwstatic.com/zbsq/bidraft/8d74f6d983b11b6edc1d9f5d14d471a4.mp4";
+    private String mVideo  = "http://v1.dwstatic.com/zbsq/bidraft/e35612b7a9c9ae64d7d67a5c32662260.mp4";
+    private String mVideo1 = "http://v1.dwstatic.com/zbsq/bidraft/8d74f6d983b11b6edc1d9f5d14d471a4.mp4";
     private ListView           mLv;
-    private VideoSourceAdapter mAdapter;
+    private YYPlayerListAdapter mAdapter;
     private List<String>       mData;
 
     @Nullable
@@ -30,7 +30,7 @@ public class VideoSourceFragment extends Fragment {
         View view = inflater.inflate(R.layout.video_source_fragment, container, false);
         mLv = (ListView) view.findViewById(R.id.video_source_lv);
         initData();
-        mAdapter = new VideoSourceAdapter(getActivity(), mData);
+        mAdapter = new YYPlayerListAdapter(getActivity(), mData);
         mLv.setAdapter(mAdapter);
         mLv.setOnScrollListener(mAdapter);
         mLv.setRecyclerListener(mAdapter);
@@ -38,9 +38,13 @@ public class VideoSourceFragment extends Fragment {
     }
 
     private void initData() {
-        mData = new ArrayList<String>();
+        mData = new ArrayList<>();
         for (int i = 0; i < 36; i++) {
-            mData.add(mVideo);
+            if ((i % 2) == 0) {
+                mData.add(mVideo);
+            } else {
+                mData.add(mVideo1);
+            }
         }
     }
 }

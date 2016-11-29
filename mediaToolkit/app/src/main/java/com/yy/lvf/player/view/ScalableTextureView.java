@@ -20,11 +20,7 @@ public class ScalableTextureView extends TextureView {
     protected Integer mContentHeight;
     protected int     mMeasureWidth;
     protected int     mMeasureHeight;
-    private Integer mContentOrientation = 0;
-    private ScaleType mScaleType;
-    private float     mPivotX;
-    private float     mPivotY;
-    private float     mRotation;
+    private ScaleType mScaleType = ScaleType.FIT_CENTER;
 
     public ScalableTextureView(Context context) {
         this(context, null);
@@ -38,20 +34,11 @@ public class ScalableTextureView extends TextureView {
         super(context, attrs, defStyleAttr);
     }
 
-    public void setContentOrientation(Integer orientation) {
-        mContentOrientation = orientation;
-    }
-
     public void setScaleType(ScaleType scaleType) {
         mScaleType = scaleType;
     }
 
     public void setContentSize(int width, int height) {
-        if (mContentOrientation == 90 || mContentOrientation == 270) {
-            mContentWidth = height;
-            mContentHeight = width;
-            return;
-        }
         mContentWidth = width;
         mContentHeight = height;
         requestLayout();
@@ -97,8 +84,6 @@ public class ScalableTextureView extends TextureView {
                 if (heightMode != MeasureSpec.EXACTLY) {
                     mMeasureHeight = mContentHeight;
                 }
-                mPivotX = mMeasureWidth >> 1;
-                mPivotY = mMeasureHeight >> 1;
                 break;
             case CENTER_CROP:
                 if (mContentWidth != mMeasureWidth && mMeasureWidth > 0) {
@@ -125,8 +110,6 @@ public class ScalableTextureView extends TextureView {
                 if (heightMode != MeasureSpec.EXACTLY) {
                     mMeasureHeight = mContentHeight;
                 }
-                mPivotX = mMeasureWidth >> 1;
-                mPivotY = mMeasureHeight >> 1;
                 break;
             case FIT_CENTER:
                 if (mContentWidth != mMeasureWidth && mMeasureWidth > 0) {
@@ -153,8 +136,6 @@ public class ScalableTextureView extends TextureView {
                 if (heightMode != MeasureSpec.EXACTLY) {
                     mMeasureHeight = mContentHeight;
                 }
-                mPivotX = mMeasureWidth >> 1;
-                mPivotY = mMeasureHeight >> 1;
                 break;
             case FIT_X_START:
                 if (mContentWidth != mMeasureWidth && mMeasureWidth > 0) {
@@ -172,8 +153,6 @@ public class ScalableTextureView extends TextureView {
                 if (heightMode != MeasureSpec.EXACTLY) {
                     mMeasureHeight = mContentHeight;
                 }
-                mPivotX = mMeasureWidth >> 1;
-                mPivotY = mContentHeight >> 1;
                 break;
             default:
                 throw new RuntimeException("invalid scale type");
