@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
@@ -20,6 +21,8 @@ import com.yy.lvf.LLog;
 import com.yy.lvf.R;
 
 import java.lang.ref.WeakReference;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -37,7 +40,8 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         public View            mItemView;// 用于计算在整个列表中的位置
         public View            mWrapView;// 用于计算播放Surface在item中的位置
         public TextView        mInfoTv;
-        public YYTexTurePlayer mYyTexturePlayer;
+        public YYTexTurePlayer mYYTexturePlayer;
+        public TextureView     mTextureView;
     }
 
     public static class MainHandler extends Handler {
@@ -45,9 +49,8 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         public static final int MSG_RELEASE               = 1;
         public static final int MSG_ITEM_POSITION_CHANGED = 2;
 
-        private final String TAG      = MainHandler.class.getSimpleName();
-        private       int    mCurrent = -1;
-        private       int    mNext    = -1;
+        private int mCurrent = -1;
+        private int mNext    = -1;
         private YYPlayerMessageListener mPlayerListener;
         private Map<Integer, Float>     posMapPercentage;
         private Map<Integer, Holder>    posMapHolder;
@@ -72,10 +75,10 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
             if (msg.obj instanceof Holder) {
                 holder = (Holder) msg.obj;
             }
-//            LLog.d(TAG, "handleMessage(" + msg + ")");
+            LLog.d(TAG, "handleMessage(" + msg + ")");
             switch (msg.what) {
                 case MSG_PLAY:
-                    play(holder);
+                    play(msg.arg1 == 1 ? true : false, holder);
                     break;
                 case MSG_RELEASE:
                     release(holder);
@@ -88,10 +91,14 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
             }
         }
 
-        public void msgPlay(boolean needCalcVisibility, Holder holder) {
+        public void msgPlay(boolean needCheckVisibility, Holder holder) {
+            if (hasMessages(MSG_PLAY)) {
+                LLog.d(TAG, "too much MSG_PLAY");
+                removeMessages(MSG_PLAY);
+            }
             Message msg = obtainMessage(MSG_PLAY);
-            msg.arg1 = needCalcVisibility ? 1 : 0;
             msg.obj = holder;
+            msg.arg1 = needCheckVisibility ? 1 : 0;
             sendMessage(msg);
         }
 
@@ -110,23 +117,39 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         }
 
         private void release(Holder holder) {
-            if (holder.mYyTexturePlayer != null) {
-                holder.mYyTexturePlayer.setOnMessageListener(null);
-                holder.mYyTexturePlayer.releasePlayer();
-                holder.mYyTexturePlayer = null;
+            if (holder.mYYTexturePlayer != null) {
+                holder.mYYTexturePlayer.setOnMessageListener(null);
+                holder.mYYTexturePlayer.releasePlayer();
+                holder.mYYTexturePlayer = null;
+            }
+            if (holder.mTextureView != null) {
+                holder.mTextureView.setVisibility(View.GONE);
+                if (holder.mWrapView != null) {
+                    ((ViewGroup) holder.mWrapView).removeView(holder.mWrapView);
+                } else {
+                    ((ViewGroup) holder.mItemView).removeView(holder.mWrapView);
+                }
+                holder.mTextureView = null;
             }
         }
 
-        private void play(Holder holder) {
-            if (holder.mYyTexturePlayer != null) {
+        private void play(boolean needCheckVisibility, Holder holder) {
+            if (holder.mYYTexturePlayer != null) {
                 throw new RuntimeException("player must be released first");
             }
-            holder.mYyTexturePlayer = new YYTexTurePlayer(mAdapter.get().mContext, null);
-            holder.mYyTexturePlayer.setOnMessageListener(mPlayerListener);
+            if (holder.mTextureView != null) {
+                throw new RuntimeException("old texture view must be released first");
+            }
+            if (needCheckVisibility && calcVisiblePercent(holder.mItemView, holder.mWrapView, mAdapter.get().mLvHeight) < PERCENTAGE_CAN_PLAY) {
+                return;
+            }
+            holder.mYYTexturePlayer = new YYTexTurePlayer(mAdapter.get().mContext, null);
+            holder.mYYTexturePlayer.setOnMessageListener(mPlayerListener);
+            holder.mTextureView = (TextureView) holder.mYYTexturePlayer.getView();
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(600, 600);
             lp.gravity = Gravity.CENTER;
-            ((FrameLayout) holder.mItemView).addView(holder.mYyTexturePlayer.getView(), lp);
-            holder.mYyTexturePlayer.playUrl(mAdapter.get().mData.get(holder.mPosition));
+            ((FrameLayout) holder.mItemView).addView(holder.mTextureView, lp);
+            holder.mYYTexturePlayer.playUrl(mAdapter.get().mData.get(holder.mPosition));
             mCurrent = holder.mPosition;
         }
 
@@ -148,8 +171,9 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
                     continue;
                 }
                 float percentage = calcVisiblePercent(holder.mItemView, holder.mWrapView, lvHeight);
-                LLog.d(TAG, "" + percentage);
-//                holder.mInfoTv.setText("");
+                BigDecimal bd = new BigDecimal(percentage);
+                percentage = bd.setScale(2, RoundingMode.HALF_UP).floatValue();
+                holder.mInfoTv.setText("" + percentage);
                 if (first == -1 && percentage >= PERCENTAGE_CAN_PLAY) {
                     first = holder.mPosition;
                 }
@@ -158,14 +182,21 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
             }
 
             int current = -1;
+            LLog.d(TAG, "mCurrent:" + mCurrent);
             if (mCurrent != -1) {
                 current = mCurrent;
-                float percentage = posMapPercentage.get(current);
-                if (percentage < PERCENTAGE_CAN_PLAY) {
-                    msgRelease(posMapHolder.get(current));
-                    current = -1;
+                if (posMapPercentage.containsKey(current)) {
+                    if (posMapPercentage.get(current) < PERCENTAGE_CAN_PLAY) {
+                        msgRelease(posMapHolder.get(current));
+                        current = -1;
 
-                    if (first != -1 && current == -1) {
+                        if (first != -1 && current == -1) {
+                            current = first;
+                            msgPlay(false, posMapHolder.get(current));
+                        }
+                    }
+                } else {
+                    if (first != -1) {
                         current = first;
                         msgPlay(false, posMapHolder.get(current));
                     }
@@ -229,7 +260,6 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
     }
 
     public static class YYPlayerMessageListener implements BasePlayer.OnMessageListener {
-        private final String TAG = YYPlayerMessageListener.class.getSimpleName();
         private WeakReference<MainHandler> mMainHandler;
 
         public YYPlayerMessageListener(MainHandler handler) {
@@ -257,12 +287,26 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         }
 
         private void completion() {
+            LLog.d(TAG, "completion(currentNext:" + mMainHandler.get().mNext + ")");
             if (mMainHandler.get().mNext == -1) {
                 return;
             }
+            mMainHandler.get().msgRelease(mMainHandler.get().posMapHolder.get(mMainHandler.get().mCurrent));
             mMainHandler.get().msgPlay(false, mMainHandler.get().posMapHolder.get(mMainHandler.get().mNext));
-            LLog.d(TAG, "completion");
-            mMainHandler.get().msgItemPositionChanged();
+            Set<Integer> positionSet = mMainHandler.get().posMapPercentage.keySet();
+            Iterator<Integer> iterator = positionSet.iterator();
+            boolean found = false;
+            int next = -1;
+            while (iterator.hasNext()) {
+                int item = iterator.next();
+                if (item == mMainHandler.get().mNext) {
+                    found = true;
+                } else if (found && mMainHandler.get().posMapPercentage.get(item) >= PERCENTAGE_CAN_PLAY) {
+                    next = item;
+                }
+            }
+            mMainHandler.get().mNext = next;
+            LLog.d(TAG, "completion(nextNext:" + mMainHandler.get().mNext + ")");
         }
 
         private String logMsg(BasePlayer.MsgParams msg) {
@@ -285,13 +329,12 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         VIDEO
     }
 
-    private final       String TAG                 = YYPlayerListAdapter.class.getSimpleName();
+    public static final String TAG                 = YYPlayerListAdapter.class.getSimpleName();
     public static final float  PERCENTAGE_CAN_PLAY = 0.8f;
 
     private Context        mContext;
     private LayoutInflater mInflater;
     private MainHandler    mMainHandler;
-//    private int mPlayingTarget = -1;
 
     private List<String> mData;
 
@@ -328,6 +371,8 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         return Type.values().length;
     }
 
+    private boolean mFirstVideo = true;
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         Holder holder;
@@ -343,6 +388,13 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
             holder.mPosition = position;
             holder.mInfoTv.setText("");
             convertView.setTag(holder);
+
+            if (mFirstVideo) {
+                mMainHandler.msgPlay(true, holder);
+                mMainHandler.msgItemPositionChanged();
+                mFirstVideo = false;
+            }
+
             return convertView;
         } else {
             throw new RuntimeException("unsupported item view type");
@@ -365,6 +417,7 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         } else if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {// 起点
             state = "SCROLL_STATE_TOUCH_SCROLL";
         }
+        LLog.d(TAG, "onScrollStateChanged(" + state + ")");
         mScrollState = scrollState;
         if (mLv == null) {
             mLv = view;
@@ -380,7 +433,7 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
             mLv.getWindowVisibleDisplayFrame(mItemRect);
             mLvHeight = mItemRect.height();
         }
-        if (mScrollState != SCROLL_STATE_FLING) {
+        if (mScrollState == SCROLL_STATE_TOUCH_SCROLL) {
             LLog.d(TAG, "onScroll(" + firstVisibleItem + ", " + visibleItemCount + ", " + totalItemCount + ", " + mScrollState + ")");
             mMainHandler.msgItemPositionChanged();
         }
