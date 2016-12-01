@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +11,7 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 
-
+import com.android.lvf.LLog;
 import com.android.lvf.R;
 import com.android.lvf.player.view.CommonMediaController;
 
@@ -26,7 +25,7 @@ import tv.danmaku.ijk.media.example.widget.media.IjkVideoView;
 public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScrollListener,
         AbsListView.RecyclerListener {
     public static class Holder {
-        public int mPosition;
+        public int          mPosition;
         public IjkVideoView mVideoView;
 
         public CommonMediaController mMediaController;
@@ -39,10 +38,10 @@ public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScr
 
     public static final String TAG = VideoSourceAdapter.class.getSimpleName();
 
-    private Context mContext;
+    private Context        mContext;
     private LayoutInflater mInflater;
     private DisplayMetrics mDm;
-    private int mVideoVHeight;
+    private int            mVideoVHeight;
 
     private List<String> mData;
 
@@ -106,11 +105,11 @@ public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScr
     }
 
     private AbsListView mLv;
-    private int mScrollState;
-    private int mFirstVisibleItem;
-    private int mVisibleItemCount;
-    private int mTotalItemCount;
-    private int mLvHeight;
+    private int         mScrollState;
+    private int         mFirstVisibleItem;
+    private int         mVisibleItemCount;
+    private int         mTotalItemCount;
+    private int         mLvHeight;
 
     @Override
     public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -123,22 +122,22 @@ public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScr
         } else if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {// 起点
             state = "SCROLL_STATE_TOUCH_SCROLL";
         }
-        Log.d(TAG, "onScrollStateChanged(" + state + ")");
+        LLog.d(TAG, "onScrollStateChanged(" + state + ")");
         mScrollState = scrollState;
         if (mLv == null) {
             mLv = view;
 
             mLv.getWindowVisibleDisplayFrame(mItemRect);
-            Log.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
+            LLog.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
             mLv.getDrawingRect(mItemRect);
-            Log.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
+            LLog.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
             mLvHeight = mItemRect.height();
         }
     }
 
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        Log.d(TAG, "onScroll(" + firstVisibleItem + ", " + visibleItemCount + ", " + totalItemCount + ")");
+        LLog.d(TAG, "onScroll(" + firstVisibleItem + ", " + visibleItemCount + ", " + totalItemCount + ")");
         mFirstVisibleItem = firstVisibleItem;
         mVisibleItemCount = visibleItemCount;
         mTotalItemCount = totalItemCount;
@@ -150,7 +149,7 @@ public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScr
 
     @Override
     public void onMovedToScrapHeap(View view) {
-        Log.d(TAG, "" + view);
+        LLog.d(TAG, "" + view);
         Holder holder = (Holder) view.getTag();
         if (getItemViewType(holder.mPosition) == Type.VIDEO.ordinal()) {
             holder.mMediaController.pauseUpdate();
@@ -185,7 +184,7 @@ public class VideoSourceAdapter extends BaseAdapter implements AbsListView.OnScr
             if (isVisibleItem) {
                 int top = item.getTop();
                 int bottom = item.getBottom();
-                Log.d(TAG, "[" + top + ", " + bottom + "]");
+                LLog.d(TAG, "[" + top + ", " + bottom + "]");
                 int halfHeight = (bottom - top) >> 1;
                 if ((top < 0 && top < -halfHeight) || (mLvHeight != 0 && bottom - mLvHeight > halfHeight)) {
                     holder.mMediaController.pauseUpdate();

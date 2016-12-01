@@ -10,7 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 
 import com.android.lvf.R;
-import com.yy.lvf.LLog;
+import com.android.lvf.LLog;
 
 import java.util.ArrayList;
 import java.util.List;

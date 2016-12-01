@@ -15,11 +15,11 @@ import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import com.android.lvf.LLog;
 import com.android.lvf.R;
 import com.android.lvf.player.IVideoListAdapter;
 import com.ycloud.playersdk.BasePlayer;
 import com.ycloud.playersdk.YYTexTurePlayer;
-import com.yy.lvf.LLog;
 
 import java.lang.ref.WeakReference;
 import java.math.BigDecimal;

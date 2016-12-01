@@ -3,7 +3,6 @@ package com.android.lvf.player.demo;
 import android.content.Context;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.TextureView;
 import android.view.View;
@@ -12,6 +11,7 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.android.lvf.LLog;
 import com.android.lvf.R;
 import com.android.lvf.player.IVideoListAdapter;
 import com.ycloud.playersdk.YYTexTurePlayer;
@@ -126,22 +126,22 @@ public class YYPlayerProactivePlayingAdapter extends BaseAdapter implements AbsL
         } else if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {// 起点
             state = "SCROLL_STATE_TOUCH_SCROLL";
         }
-        Log.d(TAG, "onScrollStateChanged(" + state + ")");
+        LLog.d(TAG, "onScrollStateChanged(" + state + ")");
         mScrollState = scrollState;
         if (mLv == null) {
             mLv = view;
 
             mLv.getWindowVisibleDisplayFrame(mItemRect);
-            Log.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
+            LLog.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
             mLv.getDrawingRect(mItemRect);
-            Log.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
+            LLog.d(TAG, "Rect(" + mItemRect.left + ", " + mItemRect.top + ", " + mItemRect.right + ", " + mItemRect.bottom + ")");
             mLvHeight = mItemRect.height();
         }
     }
 
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        Log.d(TAG, "onScroll(" + firstVisibleItem + ", " + visibleItemCount + ", " + totalItemCount + ")");
+        LLog.d(TAG, "onScroll(" + firstVisibleItem + ", " + visibleItemCount + ", " + totalItemCount + ")");
         mFirstVisibleItem = firstVisibleItem;
         mVisibleItemCount = visibleItemCount;
         mTotalItemCount = totalItemCount;
@@ -153,7 +153,7 @@ public class YYPlayerProactivePlayingAdapter extends BaseAdapter implements AbsL
 
     @Override
     public void onMovedToScrapHeap(View view) {
-        Log.d(TAG, "" + view);
+        LLog.d(TAG, "" + view);
         Holder holder = (Holder) view.getTag();
         if (getItemViewType(holder.mPosition) == Type.VIDEO.ordinal()) {
             release(holder);

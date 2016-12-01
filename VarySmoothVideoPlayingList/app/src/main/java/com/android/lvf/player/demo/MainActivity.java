@@ -11,10 +11,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import com.android.lvf.LLog;
 import com.android.lvf.R;
 import com.android.lvf.player.IFullScreen;
-import com.yy.lvf.LLog;
-
 
 /**
  * Created by slowergun on 2016/10/28.
