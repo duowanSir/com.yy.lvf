@@ -13,6 +13,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.ycloud.playersdk.YYTexTurePlayer;
+import com.yy.lvf.player.IVideoListAdapter;
 import com.yy.lvf.R;
 
 import java.math.BigDecimal;
@@ -24,7 +25,8 @@ import java.util.List;
  */
 public class YYPlayerProactivePlayingAdapter extends BaseAdapter implements AbsListView.OnScrollListener,
         AbsListView.RecyclerListener,
-        YYMediaController.Callback {
+        YYMediaController.Callback,
+        IVideoListAdapter {
     public static class Holder {
         public int               mPosition;
         public View              mItemView;// 用于计算在整个列表中的位置
@@ -198,7 +200,6 @@ public class YYPlayerProactivePlayingAdapter extends BaseAdapter implements AbsL
                 release(holder);
             }
         }
-
     }
 
     public float calcVisiblePercent(View itemView, View wrapView, int boundaryOfHeight) {
@@ -237,6 +238,37 @@ public class YYPlayerProactivePlayingAdapter extends BaseAdapter implements AbsL
 
     @Override
     public void onPrePlay() {
+    }
 
+    @Override
+    public void onPause() {
+        if (mLv == null) {
+            return;
+        }
+        int childrenCount = mLv.getChildCount();
+        for (int i = 0; i < childrenCount; i++) {
+            View item = mLv.getChildAt(i);
+            Holder holder = (Holder) item.getTag();
+            if (getItemViewType(holder.mPosition) != Type.VIDEO.ordinal()) {
+                continue;
+            }
+            holder.mYYMediaController.setOnResumed(false);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        if (mLv == null) {
+            return;
+        }
+        int childrenCount = mLv.getChildCount();
+        for (int i = 0; i < childrenCount; i++) {
+            View item = mLv.getChildAt(i);
+            Holder holder = (Holder) item.getTag();
+            if (getItemViewType(holder.mPosition) != Type.VIDEO.ordinal()) {
+                continue;
+            }
+            holder.mYYMediaController.setOnResumed(true);
+        }
     }
 }

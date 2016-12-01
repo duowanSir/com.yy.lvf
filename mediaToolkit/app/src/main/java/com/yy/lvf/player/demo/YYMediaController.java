@@ -149,6 +149,7 @@ public class YYMediaController extends FrameLayout implements
     private boolean mDragging           = false;// 是否在拖拽的过程中
     private boolean mIsFullScreen       = false;
     private boolean mMediaPlayerCreated = false;
+    private boolean mOnResumed          = true;
     private StringBuilder mFormatBuilder;
     private Formatter     mFormatter;
 
@@ -537,4 +538,9 @@ public class YYMediaController extends FrameLayout implements
             }
         }, 2000);
     }
+
+    public void setOnResumed(boolean onResumed) {
+        mOnResumed = onResumed;
+    }
+
 }

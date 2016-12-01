@@ -1,6 +1,6 @@
 package com.yy.lvf.player.demo;
 
-import android.content.res.Configuration;
+import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -29,12 +29,20 @@ public class PassivePlayingFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        LLog.d(TAG, "onCreate()");
         setRetainInstance(true);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LLog.d(TAG, "onDestroy()");
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        LLog.d(TAG, "onCreateView()");
         View view = inflater.inflate(R.layout.video_source_fragment, container, false);
         mLv = (ListView) view.findViewById(R.id.video_source_lv);
         initData();
@@ -43,6 +51,50 @@ public class PassivePlayingFragment extends Fragment {
         mLv.setOnScrollListener(mAdapter);
         mLv.setRecyclerListener(mAdapter);
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        LLog.d(TAG, "onDestroyView()");
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        LLog.d(TAG, "onResume()");
+        mAdapter.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        LLog.d(TAG, "onPause()");
+        mAdapter.onPause();
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        LLog.d(TAG, "onAttach()");
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        LLog.d(TAG, "onDetach()");
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        LLog.d(TAG, "onStart()");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        LLog.d(TAG, "onStop()");
     }
 
     private void initData() {

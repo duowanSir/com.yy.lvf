@@ -19,6 +19,7 @@ import com.ycloud.playersdk.BasePlayer;
 import com.ycloud.playersdk.YYTexTurePlayer;
 import com.yy.lvf.LLog;
 import com.yy.lvf.R;
+import com.yy.lvf.player.IVideoListAdapter;
 
 import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
@@ -34,7 +35,8 @@ import java.util.Set;
  * Created by slowergun on 2016/11/28.
  */
 public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsListView.OnScrollListener,
-        AbsListView.RecyclerListener {
+        AbsListView.RecyclerListener,
+        IVideoListAdapter {
     public static class Holder {
         public int             mPosition;
         public View            mItemView;// 用于计算在整个列表中的位置
@@ -257,10 +259,35 @@ public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsLis
                 return 0;
             }
         }
+
+        public YYPlayerMessageListener getPlayerListener() {
+            return mPlayerListener;
+        }
+
+        public void pause() {
+            if (mCurrent == -1) {
+                return;
+            }
+            if (posMapHolder != null && posMapHolder.containsKey(mCurrent)) {
+                Holder holder = posMapHolder.get(mCurrent);
+                holder.mYYTexturePlayer.pausePlay();
+            }
+        }
+
+        public void start() {
+            if (mCurrent == -1) {
+                return;
+            }
+            if (posMapHolder != null && posMapHolder.containsKey(mCurrent)) {
+                Holder holder = posMapHolder.get(mCurrent);
+                holder.mYYTexturePlayer.play();
+            }
+        }
     }
 
     public static class YYPlayerMessageListener implements BasePlayer.OnMessageListener {
         private WeakReference<MainHandler> mMainHandler;
+        private boolean mOnResumed = true;
 
         public YYPlayerMessageListener(MainHandler handler) {
             mMainHandler = new WeakReference<MainHandler>(handler);
@@ -271,13 +298,20 @@ public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsLis
             if (mMainHandler.get() == null) {
                 return;
             }
-//            LLog.d(TAG, "handleMsg(" + logMsg(msg) + ")");
+            LLog.d(TAG, "handleMsg(" + logMsg(msg) + ")");
             switch (msg.type) {
                 case BasePlayer.MSG_PLAY_ERROR:
                 case BasePlayer.MSG_PLAY_HARDDECODERERROR:
                     break;
                 case BasePlayer.MSG_PLAY_END:
                     completion();
+                    break;
+                case BasePlayer.MSG_PLAYING:
+//                    if (!mOnResumed) {
+//                        mMainHandler.get().pause();
+//                    }
+                    break;
+                default:
                     break;
             }
         }
@@ -322,6 +356,10 @@ public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsLis
                     append(msg.bundle).
                     append("]");
             return new String(sb);
+        }
+
+        public void setOnResumed(boolean onResumed) {
+            mOnResumed = onResumed;
         }
     }
 
@@ -441,7 +479,6 @@ public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsLis
 
     @Override
     public void onMovedToScrapHeap(View view) {
-//        LLog.d(TAG, "" + view);
         Holder holder = (Holder) view.getTag();
         if (getItemViewType(holder.mPosition) == Type.VIDEO.ordinal()) {
             mMainHandler.msgRelease(holder);
@@ -449,5 +486,23 @@ public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsLis
     }
 
     private Rect mItemRect = new Rect();
+
+    @Override
+    public void onPause() {
+        if (mLv == null) {
+            return;
+        }
+        mMainHandler.getPlayerListener().setOnResumed(false);
+        mMainHandler.pause();
+    }
+
+    @Override
+    public void onResume() {
+        if (mLv == null) {
+            return;
+        }
+        mMainHandler.getPlayerListener().setOnResumed(true);
+        mMainHandler.start();
+    }
 }
 
