@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
              android:layout_width="match_parent"
-             android:layout_height="wrap_content"
-             android:orientation="vertical">
+             android:layout_height="wrap_content">
+
+    <FrameLayout
+        android:id="@+id/texture_wrap_layout"
+        android:layout_width="match_parent"
+        android:layout_height="300dp">
+    </FrameLayout>
 
     <View
         android:layout_width="1dp"
@@ -15,7 +20,6 @@
         android:layout_gravity="center_vertical"
         android:maxWidth="150dp"
         android:textColor="@color/colorAccent"
-        android:textSize="12sp"
-        />
+        android:textSize="12sp"/>
 
 </FrameLayout>

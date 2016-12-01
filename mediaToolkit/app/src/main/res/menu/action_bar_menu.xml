@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/list_proactive"
+        android:title="主动列表"/>
+    <item
+        android:id="@+id/list_passive"
+        android:title="被动列表"/>
+</menu>

@@ -33,7 +33,7 @@ import java.util.Set;
 /**
  * Created by slowergun on 2016/11/28.
  */
-public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnScrollListener,
+public class YYPlayerPassivePlayingAdapter extends BaseAdapter implements AbsListView.OnScrollListener,
         AbsListView.RecyclerListener {
     public static class Holder {
         public int             mPosition;
@@ -55,9 +55,9 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         private Map<Integer, Float>     posMapPercentage;
         private Map<Integer, Holder>    posMapHolder;
 
-        private WeakReference<YYPlayerListAdapter> mAdapter;
+        private WeakReference<YYPlayerPassivePlayingAdapter> mAdapter;
 
-        public MainHandler(YYPlayerListAdapter adapter) {
+        public MainHandler(YYPlayerPassivePlayingAdapter adapter) {
             super(Looper.getMainLooper());
             mAdapter = new WeakReference<>(adapter);
             mPlayerListener = new YYPlayerMessageListener(this);
@@ -329,7 +329,7 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         VIDEO
     }
 
-    public static final String TAG                 = YYPlayerListAdapter.class.getSimpleName();
+    public static final String TAG                 = YYPlayerPassivePlayingAdapter.class.getSimpleName();
     public static final float  PERCENTAGE_CAN_PLAY = 0.8f;
 
     private Context        mContext;
@@ -338,7 +338,7 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
 
     private List<String> mData;
 
-    public YYPlayerListAdapter(Context context, List<String> data) {
+    public YYPlayerPassivePlayingAdapter(Context context, List<String> data) {
         super();
         mContext = context;
         mData = data;
@@ -378,7 +378,7 @@ public class YYPlayerListAdapter extends BaseAdapter implements AbsListView.OnSc
         Holder holder;
         if (getItemViewType(position) == Type.VIDEO.ordinal()) {
             if (convertView == null) {
-                convertView = mInflater.inflate(R.layout.yyplayer_list_item, null);
+                convertView = mInflater.inflate(R.layout.yyplayer_passive_playing_list_item, null);
                 holder = new Holder();
                 holder.mItemView = convertView;
                 holder.mInfoTv = (TextView) convertView.findViewById(R.id.info_tv);
