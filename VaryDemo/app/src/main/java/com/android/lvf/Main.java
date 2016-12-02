@@ -1,4 +1,4 @@
-package com.android.yy.lvf;
+package com.android.lvf;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -72,6 +72,9 @@ public class Main extends Activity implements OnClickListener {
             stopService(i);
         } else if (v.getId() == R.id.unbind_service) {
             unbindService(mServiceConnection);
+        } else if (v.getId() == R.id.surface_and_texture) {
+            Intent intent = new Intent(this, TestSurfaceViewAndTextureView.class);
+            startActivity(intent);
         } else {
             throw new RuntimeException("unprocessed click event");
         }

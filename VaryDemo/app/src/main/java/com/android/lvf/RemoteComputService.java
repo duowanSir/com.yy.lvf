@@ -1,4 +1,4 @@
-package com.android.yy.lvf;
+package com.android.lvf;
 
 import android.app.Service;
 import android.content.Intent;

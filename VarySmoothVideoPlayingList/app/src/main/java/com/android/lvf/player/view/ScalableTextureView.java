@@ -4,7 +4,8 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.TextureView;
 
-import com.yy.lvf.LLog;
+import com.android.lvf.LLog;
+
 
 /**
  * Created by slowergun on 2016/11/22.

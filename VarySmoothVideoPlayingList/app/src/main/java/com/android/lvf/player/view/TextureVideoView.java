@@ -10,10 +10,10 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewParent;
 
+import com.android.lvf.LLog;
 import com.android.lvf.player.IMediaController;
 import com.android.lvf.player.IMediaPlayer;
 import com.android.lvf.player.IMediaPlayerControl;
-import com.yy.lvf.LLog;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
