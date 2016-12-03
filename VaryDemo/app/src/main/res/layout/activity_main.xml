@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical" >
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical">
 
     <TextView
         android:id="@+id/info_tv"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center" />
+        android:gravity="center"/>
 
     <Button
         android:id="@+id/standard"
@@ -18,7 +18,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="standard" />
+        android:text="standard"/>
 
     <Button
         android:id="@+id/single_top"
@@ -27,7 +27,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="singleTop" />
+        android:text="singleTop"/>
 
     <Button
         android:id="@+id/single_task"
@@ -36,7 +36,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="singleTask" />
+        android:text="singleTask"/>
 
     <Button
         android:id="@+id/single_instance"
@@ -45,7 +45,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="singleInstance" />
+        android:text="singleInstance"/>
 
     <Button
         android:id="@+id/start_service"
@@ -54,7 +54,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="start" />
+        android:text="start"/>
 
     <Button
         android:id="@+id/bind_service"
@@ -63,7 +63,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="bind" />
+        android:text="bind"/>
 
     <Button
         android:id="@+id/stop_service"
@@ -72,7 +72,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="stop" />
+        android:text="stop"/>
 
     <Button
         android:id="@+id/unbind_service"
@@ -81,6 +81,15 @@
         android:layout_weight="1"
         android:gravity="center"
         android:onClick="onClick"
-        android:text="unbind" />
+        android:text="unbind"/>
+
+    <Button
+        android:id="@+id/surface_and_texture"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:onClick="onClick"
+        android:text="surface_and_texture"/>
 
 </LinearLayout>

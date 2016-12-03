@@ -1,4 +1,4 @@
-package com.android.yy.lvf;
+package com.android.lvf;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -8,7 +8,7 @@ import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class SingleInstance extends Activity implements OnClickListener {
+public class SingleTop extends Activity implements OnClickListener {
 	TextView mInfo;
 
 	@Override
