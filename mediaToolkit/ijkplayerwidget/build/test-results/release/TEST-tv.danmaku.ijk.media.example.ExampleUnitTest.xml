@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.danmaku.ijk.media.example.ExampleUnitTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2016-11-24T13:57:50" hostname="Lenovo-lvfeng" time="0.001">
+  <properties/>
+  <testcase name="addition_isCorrect" classname="tv.danmaku.ijk.media.example.ExampleUnitTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
