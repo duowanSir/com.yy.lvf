@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\23.3.0\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="1b8e03daaa43fb0a4cd57e378167c2fd70454c1e">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\com.android.support-appcompat-v7-23.3.0_e4398f99a6832449a5672c6f4fe6f03017db94f1.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\com.android.support\animated-vector-drawable\23.3.0\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="23be6993826b8fd88bbc8d14928bb3b8960d3d4e">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\com.android.support-animated-vector-drawable-23.3.0_e00890b527597ba4e00c8fb17181f130a1b9fbf4.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\com.android.support\support-vector-drawable\23.3.0\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="a0b5d60246cd9d4f3f2443611b3b4c25265840b5">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\com.android.support-support-vector-drawable-23.3.0_032d0180b053f9b0dac435d90355062f9a835b05.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\tv.danmaku.ijk.media\ijkplayer-java\0.6.1\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="ddb7653dec6235a297f28aa1a82740187cd2fcbb">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\tv.danmaku.ijk.media-ijkplayer-java-0.6.1_564f553956784fae18ac5e83ae0afea744d404c9.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\23.3.0\support-annotations-23.3.0.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="db7791d75a07fef9844d06236c1c59ba7bf6997c">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\support-annotations-23.3.0_7cd194c6f3f4f301c835750b93d55cdb37d12acf.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\tv.danmaku.ijk.media\ijkplayer-armv5\0.6.1\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="c988f84573ec9aeff828191f353ff401e7e8c272">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\tv.danmaku.ijk.media-ijkplayer-armv5-0.6.1_2f85904140beca6ccb7f9f97ff83587dc9170d58.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\mediaToolkit\ijkplayerwidget\unspecified\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="bd51265274c694b34245265a6d8ad81914bc58e3">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\mediaToolkit-ijkplayerwidget-unspecified_e7528bee715fefacbe0d899f82013763b17da355.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\com.android.support\support-v4\23.3.0\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="8a034dd16c0dfd75fe86c52c2cd581592acc684a">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\com.android.support-support-v4-23.3.0_9704a656aee765ec93b53f9ec9d4d2c7fd320a41.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\exploded-aar\com.android.support\support-v4\23.3.0\jars\libs\internal_impl-23.3.0.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="23.0.1"
+        sha1="4da5a4d697d32497c6f85567a5112e62fdfd0676">
+        <dex dex="D:\project\github\com.yy.lvf\mediaToolkit\app\build\intermediates\pre-dexed\debug\internal_impl-23.3.0_7cb0e85414b3309376204b5d1d3334505f7d40f1.jar" />
+    </item>
+
+</items>

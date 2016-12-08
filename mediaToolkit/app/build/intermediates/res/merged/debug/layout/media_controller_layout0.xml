@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="35dp"
+    android:background="#7f000000"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/media_controller_play_iv"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:layout_marginRight="5dp"
+        android:scaleType="center"
+        android:src="@mipmap/media_controller_play_icon" />
+
+    <TextView
+        android:id="@+id/media_controller_position_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="5dp"
+        android:singleLine="true"
+        android:text=""
+        android:textColor="#fff"
+        android:textSize="10sp" />
+
+    <SeekBar
+        android:id="@+id/media_controller_progress_sb"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="5dp"
+        android:layout_weight="1"
+        android:maxHeight="2dp"
+        android:minHeight="2dp"
+        android:progress="30"
+        android:progressDrawable="@drawable/media_controller_progress_drawable"
+        android:thumb="@drawable/media_controller_progress_thumb_drawable" />
+
+    <TextView
+        android:id="@+id/media_controller_duration_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="5dp"
+        android:padding="2dp"
+        android:singleLine="true"
+        android:textColor="#fff"
+        android:textSize="10sp" />
+
+    <ImageView
+        android:id="@+id/media_controller_full_iv"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:scaleType="center"
+        android:src="@mipmap/media_controller_full_icon" />
+
+</LinearLayout>

@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="4" by="lint 24.4.1">
+
+    <issue
+        id="OldTargetApi"
+        severity="Warning"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details."
+        category="Correctness"
+        priority="6"
+        summary="Target SDK attribute is not targeting latest version"
+        explanation="When your application runs on a version of Android that is more recent than your `targetSdkVersion` specifies that it has been tested with, various compatibility modes kick in. This ensures that your application continues to work, but it may look out of place. For example, if the `targetSdkVersion` is less than 14, your app may get an option button in the UI.
+
+To fix this issue, set the `targetSdkVersion` to the highest available value. Then test your app to make sure everything works correctly. You may want to consult the compatibility notes to see what changes apply to each version you are adding support for: http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        url="http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        urls="http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        errorLine1="        targetSdkVersion 23"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~"
+        quickfix="studio">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\build.gradle"
+            line="10"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="Registered"
+        severity="Warning"
+        message="The `&lt;activity> com.yy.lvf.player.demo.CoordinateActivity` is not registered in the manifest"
+        category="Correctness"
+        priority="6"
+        summary="Class is not registered in the manifest"
+        explanation="Activities, services and content providers should be registered in the `AndroidManifest.xml` file using `&lt;activity>`, `&lt;service>` and `&lt;provider>` tags.
+
+If your activity is simply a parent class intended to be subclassed by other &quot;real&quot; activities, make it an abstract class."
+        url="http://developer.android.com/guide/topics/manifest/manifest-intro.html"
+        urls="http://developer.android.com/guide/topics/manifest/manifest-intro.html"
+        errorLine1="public class CoordinateActivity extends Activity {"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\java\com\yy\lvf\player\demo\CoordinateActivity.java"
+            line="12"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="SimpleDateFormat"
+        severity="Warning"
+        message="To get local formatting use `getDateInstance()`, `getDateTimeInstance()`, or `getTimeInstance()`, or use `new SimpleDateFormat(String template, Locale locale)` with for example `Locale.US` for ASCII dates."
+        category="Correctness"
+        priority="6"
+        summary="Implied locale in date format"
+        explanation="Almost all callers should use `getDateInstance()`, `getDateTimeInstance()`, or `getTimeInstance()` to get a ready-made instance of SimpleDateFormat suitable for the user&apos;s locale. The main reason you&apos;d create an instance this class directly is because you need to format/parse a specific machine-readable format, in which case you almost certainly want to explicitly ask for US to ensure that you get ASCII digits (rather than, say, Arabic digits).
+
+Therefore, you should either use the form of the SimpleDateFormat constructor where you pass in an explicit locale, such as Locale.US, or use one of the get instance methods, or suppress this error if really know what you are doing."
+        url="http://developer.android.com/reference/java/text/SimpleDateFormat.html"
+        urls="http://developer.android.com/reference/java/text/SimpleDateFormat.html"
+        errorLine1=" private static SimpleDateFormat  dateFormat   = new SimpleDateFormat(&quot;yyyy-MM-dd HH:mm:ss&quot;);"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\java\com\yy\lvf\LLog.java"
+            line="38"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="InflateParams"
+        severity="Warning"
+        message="Avoid passing `null` as the view root (needed to resolve layout parameters on the inflated layout&apos;s root element)"
+        category="Correctness"
+        priority="5"
+        summary="Layout Inflation without a Parent"
+        explanation="When inflating a layout, avoid passing in null as the parent view, since otherwise any layout parameters on the root of the inflated layout will be ignored."
+        url="http://www.doubleencore.com/2013/05/layout-inflation-as-intended"
+        urls="http://www.doubleencore.com/2013/05/layout-inflation-as-intended"
+        errorLine1="            convertView = mInflater.inflate(R.layout.video_source_item, null);"
+        errorLine2="                                                                        ~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\java\com\yy\lvf\player\demo\VideoSourceAdapter.java"
+            line="86"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        severity="Warning"
+        message="Old buildToolsVersion 23.0.1; recommended version is 23.0.2 or later"
+        category="Correctness"
+        priority="4"
+        summary="Obsolete Gradle Dependency"
+        explanation="This detector looks for usages of libraries where the version you are using is not the current stable release. Using older versions is fine, and there are cases where you deliberately want to stick with an older version. However, you may simply not be aware that a more recent version is available, and that is what this lint check helps find."
+        errorLine1="    buildToolsVersion &quot;23.0.1&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        quickfix="studio">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\build.gradle"
+            line="5"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        severity="Warning"
+        message="A newer version of com.android.support:appcompat-v7 than 23.3.0 is available: 25.0.0"
+        category="Correctness"
+        priority="4"
+        summary="Obsolete Gradle Dependency"
+        explanation="This detector looks for usages of libraries where the version you are using is not the current stable release. Using older versions is fine, and there are cases where you deliberately want to stick with an older version. However, you may simply not be aware that a more recent version is available, and that is what this lint check helps find."
+        errorLine1="    compile &apos;com.android.support:appcompat-v7:23.3.0&apos;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        quickfix="studio">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\build.gradle"
+            line="25"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="Deprecated"
+        severity="Warning"
+        message="`android:singleLine` is deprecated: Use `maxLines=&quot;1&quot;` instead"
+        category="Correctness"
+        priority="2"
+        summary="Using deprecated resources"
+        explanation="Deprecated views, attributes and so on are deprecated because there is a better way to do something. Do it that new way. You&apos;ve been warned."
+        errorLine1="        android:singleLine=&quot;true&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="22"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="Deprecated"
+        severity="Warning"
+        message="`android:singleLine` is deprecated: Use `maxLines=&quot;1&quot;` instead"
+        category="Correctness"
+        priority="2"
+        summary="Using deprecated resources"
+        explanation="Deprecated views, attributes and so on are deprecated because there is a better way to do something. Do it that new way. You&apos;ve been warned."
+        errorLine1="        android:singleLine=&quot;true&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="45"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="AllowBackup"
+        severity="Warning"
+        message="On SDK version 23 and up, your app data will be automatically backed up and restored on app install. Consider adding the attribute `android:fullBackupContent` to specify an `@xml` resource which configures which files to backup. More info: https://developer.android.com/training/backup/autosyncapi.html"
+        category="Security"
+        priority="3"
+        summary="AllowBackup/FullBackupContent Problems"
+        explanation="The `allowBackup` attribute determines if an application&apos;s data can be backed up and restored. It is documented at http://developer.android.com/reference/android/R.attr.html#allowBackup
+
+By default, this flag is set to `true`. When this flag is set to `true`, application data can be backed up and restored by the user using `adb backup` and `adb restore`.
+
+This may have security consequences for an application. `adb backup` allows users who have enabled USB debugging to copy application data off of the device. Once backed up, all application data can be read by the user. `adb restore` allows creation of application data from a source specified by the user. Following a restore, applications should not assume that the data, file permissions, and directory permissions were created by the application itself.
+
+Setting `allowBackup=&quot;false&quot;` opts an application out of both backup and restore.
+
+To fix this warning, decide whether your application should support backup, and explicitly set `android:allowBackup=(true|false)&quot;`.
+
+If not set to false, and if targeting API 23 or later, lint will also warn that you should set `android:fullBackupContent` to configure auto backup."
+        url="https://developer.android.com/training/backup/autosyncapi.html"
+        urls="https://developer.android.com/training/backup/autosyncapi.html,http://developer.android.com/reference/android/R.attr.html#allowBackup"
+        errorLine1="    &lt;application"
+        errorLine2="    ^"
+        quickfix="studio,adt">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\AndroidManifest.xml"
+            line="7"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="Overdraw"
+        severity="Warning"
+        message="Possible overdraw: Root element paints background `#7f000000` with a theme that also paints a background (inferred theme is `@style/AppTheme`)"
+        category="Performance"
+        priority="3"
+        summary="Overdraw: Painting regions more than once"
+        explanation="If you set a background drawable on a root view, then you should use a custom theme where the theme background is null. Otherwise, the theme background will be painted first, only to have your custom background completely cover it; this is called &quot;overdraw&quot;.
+
+NOTE: This detector relies on figuring out which layouts are associated with which activities based on scanning the Java code, and it&apos;s currently doing that using an inexact pattern matching algorithm. Therefore, it can incorrectly conclude which activity the layout is associated with and then wrongly complain that a background-theme is hidden.
+
+If you want your custom background on multiple pages, then you should consider making a custom theme with your custom background and just using that theme instead of a root element background.
+
+Of course it&apos;s possible that your custom drawable is translucent and you want it to be mixed with the background. However, you will get better performance if you pre-mix the background with your drawable and use that resulting image or color as a custom theme background instead.
+"
+        errorLine1="    android:background=&quot;#7f000000&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="5"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        severity="Warning"
+        message="The resource `R.mipmap.media_controller_fulled_icon` appears to be unused"
+        category="Performance"
+        priority="3"
+        summary="Unused resources"
+        explanation="Unused resources make applications larger and slow down builds.">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\mipmap-hdpi\media_controller_fulled_icon.png"/>
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\mipmap-xhdpi\media_controller_fulled_icon.png"/>
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\mipmap-xxhdpi\media_controller_fulled_icon.png"/>
+    </issue>
+
+    <issue
+        id="GoogleAppIndexingWarning"
+        severity="Warning"
+        message="App is not indexable by Google Search; consider adding at least one Activity with an ACTION-VIEW intent filter. See issue explanation for more details."
+        category="Usability"
+        priority="5"
+        summary="Missing support for Firebase App Indexing"
+        explanation="Adds URLs to get your app into the Google index, to get installs and traffic to your app from Google Search."
+        url="https://g.co/AppIndexing/AndroidStudio"
+        urls="https://g.co/AppIndexing/AndroidStudio"
+        errorLine1="    &lt;application"
+        errorLine2="    ^"
+        quickfix="studio">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\AndroidManifest.xml"
+            line="7"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="SmallSp"
+        severity="Warning"
+        message="Avoid using sizes smaller than `12sp`: `10sp`"
+        category="Usability"
+        priority="4"
+        summary="Text size is too small"
+        explanation="Avoid using sizes smaller than 12sp."
+        errorLine1="        android:textSize=&quot;10sp&quot; />"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="25"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="SmallSp"
+        severity="Warning"
+        message="Avoid using sizes smaller than `12sp`: `10sp`"
+        category="Usability"
+        priority="4"
+        summary="Text size is too small"
+        explanation="Avoid using sizes smaller than 12sp."
+        errorLine1="        android:textSize=&quot;10sp&quot; />"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="47"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ClickableViewAccessibility"
+        severity="Warning"
+        message="`com/yy/lvf/player/view/CommonMediaController#onTouch` should call `View#performClick` when a click is detected"
+        category="Accessibility"
+        priority="6"
+        summary="Accessibility in Custom Views"
+        explanation="If a `View` that overrides `onTouchEvent` or uses an `OnTouchListener` does not also implement `performClick` and call it when clicks are detected, the `View` may not handle accessibility actions properly. Logic handling the click actions should ideally be placed in `View#performClick` as some accessibility services invoke `performClick` when a click action should occur."
+        errorLine1="    public boolean onTouch(View v, MotionEvent event) {"
+        errorLine2="                   ~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\java\com\yy\lvf\player\view\CommonMediaController.java"
+            line="409"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ContentDescription"
+        severity="Warning"
+        message="[Accessibility] Missing `contentDescription` attribute on image"
+        category="Accessibility"
+        priority="3"
+        summary="Image without `contentDescription`"
+        explanation="Non-textual widgets like ImageViews and ImageButtons should use the `contentDescription` attribute to specify a textual description of the widget such that screen readers and other accessibility tools can adequately describe the user interface.
+
+Note that elements in application screens that are purely decorative and do not provide any content or enable a user action should not have accessibility content descriptions. In this case, just suppress the lint warning with a tools:ignore=&quot;ContentDescription&quot; attribute.
+
+Note that for text fields, you should not set both the `hint` and the `contentDescription` attributes since the hint will never be shown. Just set the `hint`. See http://developer.android.com/guide/topics/ui/accessibility/checklist.html#special-cases."
+        errorLine1="    &lt;ImageView"
+        errorLine2="    ^"
+        quickfix="studio,adt">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="9"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ContentDescription"
+        severity="Warning"
+        message="[Accessibility] Missing `contentDescription` attribute on image"
+        category="Accessibility"
+        priority="3"
+        summary="Image without `contentDescription`"
+        explanation="Non-textual widgets like ImageViews and ImageButtons should use the `contentDescription` attribute to specify a textual description of the widget such that screen readers and other accessibility tools can adequately describe the user interface.
+
+Note that elements in application screens that are purely decorative and do not provide any content or enable a user action should not have accessibility content descriptions. In this case, just suppress the lint warning with a tools:ignore=&quot;ContentDescription&quot; attribute.
+
+Note that for text fields, you should not set both the `hint` and the `contentDescription` attributes since the hint will never be shown. Just set the `hint`. See http://developer.android.com/guide/topics/ui/accessibility/checklist.html#special-cases."
+        errorLine1="    &lt;ImageView"
+        errorLine2="    ^"
+        quickfix="studio,adt">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="49"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="RtlHardcoded"
+        severity="Warning"
+        message="Consider adding `android:layout_marginEnd=&quot;5dp&quot;` to better support right-to-left layouts"
+        category="Internationalization:Bidirectional Text"
+        priority="5"
+        summary="Using left/right instead of start/end attributes"
+        explanation="Using `Gravity#LEFT` and `Gravity#RIGHT` can lead to problems when a layout is rendered in locales where text flows from right to left. Use `Gravity#START` and `Gravity#END` instead. Similarly, in XML `gravity` and `layout_gravity` attributes, use `start` rather than `left`.
+
+For XML attributes such as paddingLeft and `layout_marginLeft`, use `paddingStart` and `layout_marginStart`. *NOTE*: If your `minSdkVersion` is less than 17, you should add *both* the older left/right attributes *as well as* the new start/right attributes. On older platforms, where RTL is not supported and the start/right attributes are unknown and therefore ignored, you need the older left/right attributes. There is a separate lint check which catches that type of error.
+
+(Note: For `Gravity#LEFT` and `Gravity#START`, you can use these constants even when targeting older platforms, because the `start` bitmask is a superset of the `left` bitmask. Therefore, you can use `gravity=&quot;start&quot;` rather than `gravity=&quot;left|start&quot;`.)"
+        errorLine1="        android:layout_marginRight=&quot;5dp&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="13"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="RtlHardcoded"
+        severity="Warning"
+        message="Consider adding `android:layout_marginEnd=&quot;5dp&quot;` to better support right-to-left layouts"
+        category="Internationalization:Bidirectional Text"
+        priority="5"
+        summary="Using left/right instead of start/end attributes"
+        explanation="Using `Gravity#LEFT` and `Gravity#RIGHT` can lead to problems when a layout is rendered in locales where text flows from right to left. Use `Gravity#START` and `Gravity#END` instead. Similarly, in XML `gravity` and `layout_gravity` attributes, use `start` rather than `left`.
+
+For XML attributes such as paddingLeft and `layout_marginLeft`, use `paddingStart` and `layout_marginStart`. *NOTE*: If your `minSdkVersion` is less than 17, you should add *both* the older left/right attributes *as well as* the new start/right attributes. On older platforms, where RTL is not supported and the start/right attributes are unknown and therefore ignored, you need the older left/right attributes. There is a separate lint check which catches that type of error.
+
+(Note: For `Gravity#LEFT` and `Gravity#START`, you can use these constants even when targeting older platforms, because the `start` bitmask is a superset of the `left` bitmask. Therefore, you can use `gravity=&quot;start&quot;` rather than `gravity=&quot;left|start&quot;`.)"
+        errorLine1="        android:layout_marginRight=&quot;5dp&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="21"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="RtlHardcoded"
+        severity="Warning"
+        message="Consider adding `android:layout_marginEnd=&quot;5dp&quot;` to better support right-to-left layouts"
+        category="Internationalization:Bidirectional Text"
+        priority="5"
+        summary="Using left/right instead of start/end attributes"
+        explanation="Using `Gravity#LEFT` and `Gravity#RIGHT` can lead to problems when a layout is rendered in locales where text flows from right to left. Use `Gravity#START` and `Gravity#END` instead. Similarly, in XML `gravity` and `layout_gravity` attributes, use `start` rather than `left`.
+
+For XML attributes such as paddingLeft and `layout_marginLeft`, use `paddingStart` and `layout_marginStart`. *NOTE*: If your `minSdkVersion` is less than 17, you should add *both* the older left/right attributes *as well as* the new start/right attributes. On older platforms, where RTL is not supported and the start/right attributes are unknown and therefore ignored, you need the older left/right attributes. There is a separate lint check which catches that type of error.
+
+(Note: For `Gravity#LEFT` and `Gravity#START`, you can use these constants even when targeting older platforms, because the `start` bitmask is a superset of the `left` bitmask. Therefore, you can use `gravity=&quot;start&quot;` rather than `gravity=&quot;left|start&quot;`.)"
+        errorLine1="        android:layout_marginRight=&quot;5dp&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="31"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="RtlHardcoded"
+        severity="Warning"
+        message="Consider adding `android:layout_marginEnd=&quot;5dp&quot;` to better support right-to-left layouts"
+        category="Internationalization:Bidirectional Text"
+        priority="5"
+        summary="Using left/right instead of start/end attributes"
+        explanation="Using `Gravity#LEFT` and `Gravity#RIGHT` can lead to problems when a layout is rendered in locales where text flows from right to left. Use `Gravity#START` and `Gravity#END` instead. Similarly, in XML `gravity` and `layout_gravity` attributes, use `start` rather than `left`.
+
+For XML attributes such as paddingLeft and `layout_marginLeft`, use `paddingStart` and `layout_marginStart`. *NOTE*: If your `minSdkVersion` is less than 17, you should add *both* the older left/right attributes *as well as* the new start/right attributes. On older platforms, where RTL is not supported and the start/right attributes are unknown and therefore ignored, you need the older left/right attributes. There is a separate lint check which catches that type of error.
+
+(Note: For `Gravity#LEFT` and `Gravity#START`, you can use these constants even when targeting older platforms, because the `start` bitmask is a superset of the `left` bitmask. Therefore, you can use `gravity=&quot;start&quot;` rather than `gravity=&quot;left|start&quot;`.)"
+        errorLine1="        android:layout_marginRight=&quot;5dp&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="D:\project\github\com.yy.lvf\mediaToolkit\app\src\main\res\layout\media_controller_layout0.xml"
+            line="43"
+            column="9"/>
+    </issue>
+
+</issues>
