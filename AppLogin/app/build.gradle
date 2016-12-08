@@ -2,10 +2,10 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    buildToolsVersion "25.0.0"
 
     defaultConfig {
-        applicationId "com.yy.lvf"
+        applicationId "com.android.lvf.applogin"
         minSdkVersion 14
         targetSdkVersion 23
         versionCode 1
@@ -17,16 +17,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    sourceSets {
-        main { jniLibs.srcDirs = ['libs'] }
-    }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.3.0'
-    compile project(':ijkplayerwidget')
-    compile files('libs/smartdns-2.0.7.jar')
-    compile files('libs/YYPlayerSDK-lib.jar')
+    compile 'com.android.support:appcompat-v7:23.4.0'
 }

@@ -75,6 +75,12 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.surface_and_texture) {
             Intent intent = new Intent(this, TestSurfaceViewAndTextureView.class);
             startActivity(intent);
+        } else if (v.getId() == R.id.list_cover_play) {
+            Intent intent = new Intent(this, ListCoverPlayActivity.class);
+            startActivity(intent);
+        } else if (v.getId() == R.id.horizontal_slide) {
+            Intent intent = new Intent(this, HorizontalSlideActivity.class);
+            startActivity(intent);
         } else {
             throw new RuntimeException("unprocessed click event");
         }
