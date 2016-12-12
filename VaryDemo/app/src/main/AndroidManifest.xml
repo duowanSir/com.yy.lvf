@@ -36,7 +36,8 @@
         <activity
             android:name="com.android.lvf.SingleTask"
             android:launchMode="singleTask"
-            android:taskAffinity="com.example.hello"/>
+            />
+        <!--android:taskAffinity="com.example.hello"-->
         <activity
             android:name="com.android.lvf.SingleInstance"
             android:launchMode="singleInstance"/>
