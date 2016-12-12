@@ -7,8 +7,8 @@
     <uses-sdk
         android:minSdkVersion="15"
         android:targetSdkVersion="21"/>
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.Camera" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.Camera"/>
 
     <application
         android:allowBackup="true"
@@ -43,6 +43,15 @@
         <activity
             android:name="com.android.lvf.TestSurfaceViewAndTextureView"
             android:launchMode="singleInstance"/>
+
+        <activity
+            android:name=".ListCoverPlayActivity"
+            android:launchMode="standard"/>
+
+        <activity
+            android:name=".HorizontalSlideActivity"
+            android:launchMode="standard"/>
+
 
         <service
             android:name="com.android.lvf.RemoteComputService"

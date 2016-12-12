@@ -1,4 +1,0 @@
-#Thu Nov 24 21:57:39 CST 2016
-base.0=D\:\\project\\github\\com.yy.lvf\\mediaToolkit\\app\\build\\intermediates\\transforms\\dex\\release\\folders\\1000\\1f\\main
-renamed.0=classes.dex
-file.0=D\:\\project\\github\\com.yy.lvf\\mediaToolkit\\app\\build\\intermediates\\transforms\\dex\\release\\folders\\1000\\1f\\main\\classes.dex
