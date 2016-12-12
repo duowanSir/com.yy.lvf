@@ -1,4 +1,4 @@
-package com.android.lvf.sqlitetool;
+package com.android.lvf.ldatabasetool;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;

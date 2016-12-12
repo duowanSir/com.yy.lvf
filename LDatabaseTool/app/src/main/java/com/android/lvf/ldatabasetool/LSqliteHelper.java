@@ -1,4 +1,4 @@
-package com.android.lvf.sqlitetool;
+package com.android.lvf.ldatabasetool;
 
 import android.content.Context;
 import android.database.DatabaseErrorHandler;

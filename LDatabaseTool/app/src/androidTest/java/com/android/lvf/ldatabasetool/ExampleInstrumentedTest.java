@@ -1,4 +1,4 @@
-package com.android.lvf.sqlitetool;
+package com.android.lvf.ldatabasetool;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.android.lvf.sqlitetool", appContext.getPackageName());
+        assertEquals("com.android.lvf.ldatabasetool", appContext.getPackageName());
     }
 }

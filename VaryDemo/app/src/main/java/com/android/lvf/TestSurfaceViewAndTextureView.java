@@ -123,6 +123,12 @@ public class TestSurfaceViewAndTextureView extends Activity implements View.OnCl
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
         Log.d(TAG, "onSurfaceTextureDestroyed(" + surface + ", " + Thread.currentThread() + ")");
+        try {
+            mCamera.setPreviewTexture(null);
+            mCamera.stopPreview();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
