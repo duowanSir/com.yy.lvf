@@ -1,4 +1,4 @@
-package com.android.lvf;
+package com.android.lvf.demo.surface;
 
 import android.app.Activity;
 import android.graphics.SurfaceTexture;
@@ -10,8 +10,9 @@ import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.TabHost;
 import android.widget.Toast;
+
+import com.android.lvf.R;
 
 import java.io.IOException;
 

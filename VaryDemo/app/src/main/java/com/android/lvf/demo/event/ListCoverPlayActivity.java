@@ -1,4 +1,4 @@
-package com.android.lvf;
+package com.android.lvf.demo.event;
 
 import android.app.Activity;
 import android.graphics.Rect;
@@ -12,10 +12,12 @@ import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.android.lvf.LLog;
+import com.android.lvf.R;
 
 /**
  * Created by slowergun on 2016/12/8.
@@ -129,11 +131,12 @@ public class ListCoverPlayActivity extends Activity implements CompoundButton.On
                         public void onClick(View v) {
                             Toast.makeText(ListCoverPlayActivity.this, holder.mTv.getText(), Toast.LENGTH_SHORT).show();
                             Holder tag = (Holder) v.getTag();
-                            if (tag.mPosition == 10) {
-                                int top = tag.mTv.getTop();
-                                int bottom = tag.mTv.getBottom();
-                                int height = bottom - top;
-                            }
+//                            if (tag.mPosition == 10) {
+//                                int top = tag.mTv.getTop();
+//                                int bottom = tag.mTv.getBottom();
+//                                int height = bottom - top;
+//                            }
+                            mLv.setVisibility(View.INVISIBLE);
                         }
                     });
                     convertView.setTag(holder);
@@ -167,6 +170,8 @@ public class ListCoverPlayActivity extends Activity implements CompoundButton.On
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 LLog.d(TAG, "onScroll(" + e1.getAction() + ", " + mFlagScroll + ")");
+                mLv.setVisibility(View.VISIBLE);
+                mLv.requestFocus();
                 return mFlagScroll;
             }
 

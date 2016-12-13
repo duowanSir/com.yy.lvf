@@ -1,4 +1,4 @@
-package com.android.lvf;
+package com.android.lvf.demo.component;
 
 import android.app.Service;
 import android.content.Intent;
@@ -6,7 +6,9 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
-public class RemoteComputService extends Service {
+import com.android.lvf.ICompute;
+
+public class ServiceRemoteCompute extends Service {
 	public static final String	TAG	= "LearnAIPC";
 	private ExtCompute			mExtCompute;
 

@@ -1,6 +1,7 @@
-package com.android.lvf;
+package com.android.lvf.demo;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -13,6 +14,17 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.android.lvf.demo.event.HorizontalSlideActivity;
+import com.android.lvf.ICompute;
+import com.android.lvf.demo.event.ListCoverPlayActivity;
+import com.android.lvf.R;
+import com.android.lvf.demo.component.ServiceRemoteCompute;
+import com.android.lvf.demo.component.ActivitySingleInstance;
+import com.android.lvf.demo.component.ActivitySingleTask;
+import com.android.lvf.demo.component.ActivitySingleTop;
+import com.android.lvf.demo.component.ActivityStandard;
+import com.android.lvf.demo.surface.TestSurfaceViewAndTextureView;
 
 
 public class Main extends Activity implements OnClickListener {
@@ -30,14 +42,14 @@ public class Main extends Activity implements OnClickListener {
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
-                Log.d(RemoteComputService.TAG, "onServiceDisconnected(" + name + ")");
+                Log.d(ServiceRemoteCompute.TAG, "onServiceDisconnected(" + name + ")");
             }
 
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.d(RemoteComputService.TAG, "onServiceConnected(" + name + ", " + service + ", " + Thread.currentThread() + ")");
+                Log.d(ServiceRemoteCompute.TAG, "onServiceConnected(" + name + ", " + service + ", " + Thread.currentThread() + ")");
                 ICompute iCompute = ICompute.Stub.asInterface(service);
-                Log.d(RemoteComputService.TAG, "onServiceConnected(" + iCompute + ")");
+                Log.d(ServiceRemoteCompute.TAG, "onServiceConnected(" + iCompute + ")");
                 try {
                     iCompute.add(2, 3);
                 } catch (RemoteException e) {
@@ -50,25 +62,25 @@ public class Main extends Activity implements OnClickListener {
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.standard) {
-            Intent intent = new Intent(this, Standard.class);
+            Intent intent = new Intent(this, ActivityStandard.class);
             startActivity(intent);
         } else if (v.getId() == R.id.single_top) {
-            Intent intent = new Intent(this, SingleTop.class);
+            Intent intent = new Intent(this, ActivitySingleTop.class);
             startActivity(intent);
         } else if (v.getId() == R.id.single_task) {
-            Intent intent = new Intent(this, SingleTask.class);
+            Intent intent = new Intent(this, ActivitySingleTask.class);
             startActivity(intent);
         } else if (v.getId() == R.id.single_instance) {
-            Intent intent = new Intent(this, SingleInstance.class);
+            Intent intent = new Intent(this, ActivitySingleInstance.class);
             startActivity(intent);
         } else if (v.getId() == R.id.start_service) {
-            Intent i = new Intent(this, RemoteComputService.class);
+            Intent i = new Intent(this, ServiceRemoteCompute.class);
             startService(i);
         } else if (v.getId() == R.id.bind_service) {
-            Intent i = new Intent(this, RemoteComputService.class);
+            Intent i = new Intent(this, ServiceRemoteCompute.class);
             bindService(i, mServiceConnection, Context.BIND_AUTO_CREATE);
         } else if (v.getId() == R.id.stop_service) {
-            Intent i = new Intent(this, RemoteComputService.class);
+            Intent i = new Intent(this, ServiceRemoteCompute.class);
             stopService(i);
         } else if (v.getId() == R.id.unbind_service) {
             unbindService(mServiceConnection);
@@ -81,6 +93,10 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.horizontal_slide) {
             Intent intent = new Intent(this, HorizontalSlideActivity.class);
             startActivity(intent);
+        } else if (v.getId() == R.id.window) {
+            Dialog dialog = new Dialog(this);
+            dialog.setContentView(R.layout.window);
+            dialog.show();
         } else {
             throw new RuntimeException("unprocessed click event");
         }

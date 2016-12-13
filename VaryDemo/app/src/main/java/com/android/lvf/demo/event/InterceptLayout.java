@@ -1,9 +1,11 @@
-package com.android.lvf;
+package com.android.lvf.demo.event;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.widget.FrameLayout;
+
+import com.android.lvf.LLog;
 
 /**
  * Created by slowergun on 2016/12/8.

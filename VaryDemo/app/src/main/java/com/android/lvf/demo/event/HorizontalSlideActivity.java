@@ -1,4 +1,4 @@
-package com.android.lvf;
+package com.android.lvf.demo.event;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import com.android.lvf.R;
 
 /**
  * Created by slowergun on 2016/12/8.

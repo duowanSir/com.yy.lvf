@@ -1,4 +1,4 @@
-package com.android.lvf;
+package com.android.lvf.demo.event;
 
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
@@ -9,6 +9,8 @@ import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
+
+import com.android.lvf.LLog;
 
 /**
  * Created by slowergun on 2016/12/8.

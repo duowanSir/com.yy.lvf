@@ -1,10 +1,12 @@
-package com.android.lvf;
+package com.android.lvf.demo.event;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.LinearLayout;
+
+import com.android.lvf.LLog;
 
 /**
  * Created by slowergun on 2016/12/8.
@@ -32,27 +34,28 @@ public class DebugLayout extends LinearLayout {
         if (mGestureDetector != null) {
             done = mGestureDetector.onTouchEvent(event);
         }
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                x = event.getX();
-                y = event.getY();
-                done = true;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (Math.abs(event.getX() - x) >= Math.abs(event.getY() - y)) {
-                    done = true;
-                    getParent().requestDisallowInterceptTouchEvent(false);
-                } else {
-                    done = false;
-                    getParent().requestDisallowInterceptTouchEvent(true);
-                }
-                break;
-            case MotionEvent.ACTION_CANCEL:
-            case MotionEvent.ACTION_UP:
-                getParent().requestDisallowInterceptTouchEvent(true);
-                break;
-        }
+//        switch (event.getAction()) {
+//            case MotionEvent.ACTION_DOWN:
+//                x = event.getX();
+//                y = event.getY();
+//                done = true;
+//                break;
+//            case MotionEvent.ACTION_MOVE:
+//                if (Math.abs(event.getX() - x) >= Math.abs(event.getY() - y)) {
+//                    done = true;
+//                    getParent().requestDisallowInterceptTouchEvent(false);
+//                } else {
+//                    done = false;
+//                    getParent().requestDisallowInterceptTouchEvent(true);
+//                }
+//                break;
+//            case MotionEvent.ACTION_CANCEL:
+//            case MotionEvent.ACTION_UP:
+//                getParent().requestDisallowInterceptTouchEvent(true);
+//                break;
+//        }
         LLog.d(ListCoverPlayActivity.TAG, "onTouchEvent(" + event.getAction() + ", " + done + ")");
+        super.onTouchEvent(event);
         return done;
     }
 
@@ -64,7 +67,7 @@ public class DebugLayout extends LinearLayout {
 //    }
 
     public void setGestureDetector(GestureDetector detector) {
-//        mGestureDetector = detector;
+        mGestureDetector = detector;
     }
 
 }
