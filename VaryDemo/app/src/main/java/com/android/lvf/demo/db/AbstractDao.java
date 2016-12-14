@@ -143,11 +143,6 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (object == null) {
             return null;
         }
-
-    }
-
-
-    private SQLiteDatabase getDatabase() {
         return null;
     }
 
