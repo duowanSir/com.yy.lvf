@@ -112,13 +112,13 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/list_cover_play"
+            android:id="@+id/video_list"
             android:layout_width="0dp"
             android:layout_height="50dp"
             android:layout_weight="1"
             android:gravity="center"
             android:onClick="onClick"
-            android:text="list_cover_play"/>
+            android:text="video_list"/>
 
         <Button
             android:id="@+id/horizontal_slide"

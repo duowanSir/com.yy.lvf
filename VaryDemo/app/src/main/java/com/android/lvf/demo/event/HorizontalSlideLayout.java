@@ -94,7 +94,7 @@ public class HorizontalSlideLayout extends LinearLayout {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        LLog.d(ListCoverPlayActivity.TAG, "onTouchEvent(" + ev.getAction() + ", " + isInterceptHere + ")");
+        LLog.d(ActivityGestureDetect.TAG, "onTouchEvent(" + ev.getAction() + ", " + isInterceptHere + ")");
         return isInterceptHere;
     }
 

@@ -2,7 +2,7 @@ package com.android.lvf.demo.event;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.view.GestureDetector;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.widget.LinearLayout;
 
@@ -12,62 +12,77 @@ import com.android.lvf.LLog;
  * Created by slowergun on 2016/12/8.
  */
 public class DebugLayout extends LinearLayout {
-    private GestureDetector mGestureDetector;
+    public static final String TAG = DebugLayout.class.getSimpleName();
+    private int mDp10;
 
     public DebugLayout(Context context) {
-        super(context);
+        this(context, null, 0);
     }
 
     public DebugLayout(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        this(context, attrs, 0);
     }
 
     public DebugLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        mDp10 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, context.getResources().getDisplayMetrics());
     }
-
-    float x, y;
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        boolean done = super.onTouchEvent(event);
-        if (mGestureDetector != null) {
-            done = mGestureDetector.onTouchEvent(event);
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private float   mDownX;
+    private float   mDownY;
+    private boolean mIsVerticalScroll;
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownX = ev.getX();
+                mDownY = ev.getY();
+                LLog.d(TAG, "ACTION_DOWN");
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int distanceX = (int) (ev.getX() - mDownX);
+                int distanceY = (int) (ev.getY() - mDownY);
+                distanceX = Math.abs(distanceX);
+                distanceY = Math.abs(distanceY);
+                if (distanceY > distanceX && distanceY >= mDp10) {
+                    mIsVerticalScroll = true;
+                } else {
+                    mIsVerticalScroll = false;
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                LLog.d(TAG, "ACTION_UP");
+                break;
         }
-//        switch (event.getAction()) {
-//            case MotionEvent.ACTION_DOWN:
-//                x = event.getX();
-//                y = event.getY();
-//                done = true;
-//                break;
-//            case MotionEvent.ACTION_MOVE:
-//                if (Math.abs(event.getX() - x) >= Math.abs(event.getY() - y)) {
-//                    done = true;
-//                    getParent().requestDisallowInterceptTouchEvent(false);
-//                } else {
-//                    done = false;
-//                    getParent().requestDisallowInterceptTouchEvent(true);
-//                }
-//                break;
-//            case MotionEvent.ACTION_CANCEL:
-//            case MotionEvent.ACTION_UP:
-//                getParent().requestDisallowInterceptTouchEvent(true);
-//                break;
-//        }
-        LLog.d(ListCoverPlayActivity.TAG, "onTouchEvent(" + event.getAction() + ", " + done + ")");
-        super.onTouchEvent(event);
-        return done;
+        if (mIsVerticalScroll) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-//    @Override
-//    public boolean onInterceptTouchEvent(MotionEvent event) {
-//        boolean done = super.onInterceptTouchEvent(event);
-//        LLog.d(ListCoverPlayActivity.TAG, "onInterceptTouchEvent(" + event.getAction() + ", " + done + ")");
-//        return done;
-//    }
-
-    public void setGestureDetector(GestureDetector detector) {
-        mGestureDetector = detector;
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                LLog.d(TAG, "ACTION_DOWN");
+                break;
+            case MotionEvent.ACTION_MOVE:
+                break;
+            case MotionEvent.ACTION_UP:
+                LLog.d(TAG, "ACTION_UP");
+                break;
+        }
+        if (mIsVerticalScroll) {
+            return false;
+        } else {
+            return true;
+        }
     }
-
 }

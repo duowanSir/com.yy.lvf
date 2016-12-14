@@ -15,9 +15,10 @@ import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.ICompute;
-import com.android.lvf.demo.event.ListCoverPlayActivity;
+import com.android.lvf.demo.event.ActivityGestureDetect;
 import com.android.lvf.R;
 import com.android.lvf.demo.component.ServiceRemoteCompute;
 import com.android.lvf.demo.component.ActivitySingleInstance;
@@ -87,8 +88,8 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.surface_and_texture) {
             Intent intent = new Intent(this, TestSurfaceViewAndTextureView.class);
             startActivity(intent);
-        } else if (v.getId() == R.id.list_cover_play) {
-            Intent intent = new Intent(this, ListCoverPlayActivity.class);
+        } else if (v.getId() == R.id.video_list) {
+            Intent intent = new Intent(this, ActivityVideoList.class);
             startActivity(intent);
         } else if (v.getId() == R.id.horizontal_slide) {
             Intent intent = new Intent(this, HorizontalSlideActivity.class);
