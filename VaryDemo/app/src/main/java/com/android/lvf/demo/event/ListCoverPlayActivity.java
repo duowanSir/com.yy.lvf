@@ -172,6 +172,7 @@ public class ListCoverPlayActivity extends Activity implements CompoundButton.On
                 LLog.d(TAG, "onScroll(" + e1.getAction() + ", " + mFlagScroll + ")");
                 mLv.setVisibility(View.VISIBLE);
                 mLv.requestFocus();
+                mLv.onTouchEvent(e1);
                 return mFlagScroll;
             }
 
