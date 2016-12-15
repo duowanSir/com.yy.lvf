@@ -82,7 +82,7 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
                                         "[" + v.getLeft() + ", " + v.getTop() + ", " + v.getRight() + ", " + v.getBottom() + "]");
                                 RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) mVideoView.getLayoutParams();
                                 lp.height = drawingRect.height();
-                                lp.topMargin = v.getTop();
+//                                lp.topMargin = v.getTop();
                                 mVideoView.setLayoutParams(lp);
                                 mCurtainLayout.setVisibility(View.VISIBLE);
                                 setListViewChildrenVisibility(View.INVISIBLE);

@@ -1,27 +1,30 @@
 package com.android.lvf.demo.db.table;
 
+import com.android.lvf.LLog;
 import com.android.lvf.demo.db.IBaseTable;
+import com.android.lvf.demo.db.dao.VideoInfoDao;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Created by slowergun on 2016/12/14.
  */
-public class VideoInfo implements IBaseTable<VideoInfo> {
+public class VideoInfo implements IBaseTable {
+    private static final String TAG = VideoInfo.class.getSimpleName();
     /**
      * 表字段,请勿改动顺序
      */
-    public  Long                mOId;
-    public  Integer             mServerTimestampS;
-    public  Integer             mClientTimestampS;
-    public  Integer             mVisibleTimeS;
-    public  Boolean             mUploaded;
+    public  Long                          mOId;
+    public  Integer                       mServerTimestampS;
+    public  Integer                       mClientTimestampS;
+    public  Integer                       mVisibleTimeS;
+    public  Boolean                       mUploaded;
     /**
      * 表字段,请勿改动顺序
      */
-    private Map<String, Object> mColumn2Value;// 插入时有用
-    private String[]            mValues;
-    private Class<?>[]          mValueTypes;
+    private LinkedHashMap<String, Object> mColumn2Value;
 
     public VideoInfo() {
         this(null, null, null, null, null);
@@ -33,62 +36,44 @@ public class VideoInfo implements IBaseTable<VideoInfo> {
         mClientTimestampS = clientTimestampS;
         mVisibleTimeS = visibleTimeS;
         mUploaded = uploaded;
-
-        generateColumnValues();
-        generateValueTypes();
     }
 
     @Override
-    public String[] getValues() {
-        return mValues;
-    }
-
-    @Override
-    public Class<?>[] getValueTypes() {
-        return mValueTypes;
-    }
-
-    @Override
-    public VideoInfo newOne() {
-        return new VideoInfo();
-    }
-
-    private void generateColumnValues() {
-        mValues = new String[5];
-        if (mOId == null) {
-            mValues[0] = null;
-        } else {
-            mValues[0] = String.valueOf(mOId);
+    public LinkedHashMap<String, Object> getColumn2Value() {
+        if (mColumn2Value == null) {
+            mColumn2Value = new LinkedHashMap<>();
         }
-        if (mServerTimestampS == null) {
-            mValues[1] = null;
-        } else {
-            mValues[0] = String.valueOf(mServerTimestampS);
+        if (!mColumn2Value.containsKey(VideoInfoDao.COLUMN_NAMES[0])) {
+            if (mOId != null) {
+                mColumn2Value.put(VideoInfoDao.COLUMN_NAMES[0], mOId);
+            }
+            LLog.w(TAG, "column value map warn");
         }
-        if (mClientTimestampS == null) {
-            mValues[2] = null;
-        } else {
-            mValues[2] = String.valueOf(mClientTimestampS);
+        if (!mColumn2Value.containsKey(VideoInfoDao.COLUMN_NAMES[1])) {
+            if (mServerTimestampS != null) {
+                mColumn2Value.put(VideoInfoDao.COLUMN_NAMES[1], mServerTimestampS);
+            }
+            LLog.w(TAG, "column value map warn");
         }
-        if (mVisibleTimeS == null) {
-            mValues[3] = null;
-        } else {
-            mValues[3] = String.valueOf(mVisibleTimeS);
+        if (!mColumn2Value.containsKey(VideoInfoDao.COLUMN_NAMES[2])) {
+            if (mClientTimestampS != null) {
+                mColumn2Value.put(VideoInfoDao.COLUMN_NAMES[2], mClientTimestampS);
+            }
+            LLog.w(TAG, "column value map warn");
         }
-        if (mUploaded == null) {
-            mValues[4] = null;
-        } else {
-            mValues[4] = String.valueOf(mUploaded);
+        if (!mColumn2Value.containsKey(VideoInfoDao.COLUMN_NAMES[3])) {
+            if (mVisibleTimeS != null) {
+                mColumn2Value.put(VideoInfoDao.COLUMN_NAMES[3], mVisibleTimeS);
+            }
+            LLog.w(TAG, "column value map warn");
         }
-    }
-
-    private void generateValueTypes() {
-        mValueTypes = new Class[5];
-        mValueTypes[0] = Long.TYPE;
-        mValueTypes[1] = Integer.TYPE;
-        mValueTypes[2] = Integer.TYPE;
-        mValueTypes[3] = Integer.TYPE;
-        mValueTypes[4] = Boolean.TYPE;
+        if (!mColumn2Value.containsKey(VideoInfoDao.COLUMN_NAMES[4])) {
+            if (mUploaded != null) {
+                mColumn2Value.put(VideoInfoDao.COLUMN_NAMES[4], mUploaded);
+            }
+            LLog.w(TAG, "column value map warn");
+        }
+        return mColumn2Value;
     }
 
 }

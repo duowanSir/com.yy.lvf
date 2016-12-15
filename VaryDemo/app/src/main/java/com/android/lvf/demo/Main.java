@@ -15,6 +15,8 @@ import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.lvf.demo.db.DaoManager;
+import com.android.lvf.demo.db.table.VideoInfo;
 import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.ICompute;
@@ -94,6 +96,22 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.horizontal_slide) {
             Intent intent = new Intent(this, HorizontalSlideActivity.class);
             startActivity(intent);
+        } else if (v.getId() == R.id.window) {
+            Dialog dialog = new Dialog(this);
+            dialog.setContentView(R.layout.window);
+            dialog.show();
+        } else if (v.getId() == R.id.insert) {
+            long timeMs = System.currentTimeMillis();
+            int timeS = (int) (timeMs / 1000);
+            DaoManager.getInstance().getVideoInfoDao().insert(new VideoInfo(timeMs, timeS, timeS, timeS, false));
+        } else if (v.getId() == R.id.window) {
+            Dialog dialog = new Dialog(this);
+            dialog.setContentView(R.layout.window);
+            dialog.show();
+        } else if (v.getId() == R.id.window) {
+            Dialog dialog = new Dialog(this);
+            dialog.setContentView(R.layout.window);
+            dialog.show();
         } else if (v.getId() == R.id.window) {
             Dialog dialog = new Dialog(this);
             dialog.setContentView(R.layout.window);

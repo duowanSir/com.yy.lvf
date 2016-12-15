@@ -30,10 +30,9 @@ public class DaoManager {
             throw new RuntimeException("dao manager has been init");
         }
         mContext = context;
-        mOpenHelper = new LDatabaseHelper(mContext, LDatabaseHelper.TAG, LDatabaseHelper.VERSION);
+        mOpenHelper = new LDatabaseHelper(mContext, LDatabaseHelper.NAME, LDatabaseHelper.VERSION);
 
-        mVideoInfoDao = new VideoInfoDao();
-
+        mVideoInfoDao = new VideoInfoDao(mOpenHelper);
     }
 
     private void assertContext() {

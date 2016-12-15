@@ -1,5 +1,8 @@
 package com.android.lvf.demo.db.dao;
 
+import android.database.sqlite.SQLiteOpenHelper;
+
+import com.android.lvf.LLog;
 import com.android.lvf.demo.db.AbstractDao;
 import com.android.lvf.demo.db.table.VideoInfo;
 
@@ -31,25 +34,25 @@ public class VideoInfoDao extends AbstractDao<VideoInfo> {
                 CREATE.append(")");
             }
         }
+        LLog.d(TAG, CREATE.toString());
+    }
+
+    public VideoInfoDao(SQLiteOpenHelper helper) {
+        mOpenHelper = helper;
     }
 
     @Override
     public String getTableName() {
-        return null;
+        return TAG;
     }
 
     @Override
     public String[] getColumnNames() {
-        return new String[0];
+        return COLUMN_NAMES;
     }
 
     @Override
     public String[] getColumnTypes() {
-        return new String[0];
-    }
-
-    @Override
-    public void createTable() {
-
+        return COLUMN_TYPES;
     }
 }

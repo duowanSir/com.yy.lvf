@@ -2,17 +2,26 @@ package com.android.lvf.demo.db;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
+import com.android.lvf.LLog;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.IllegalFormatCodePointException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by slowergun on 2016/12/14.
  */
 public abstract class AbstractDao<T extends IBaseTable> {
-    private   SQLiteDatabase mDatabase;
-    protected String         mPrimaryKey;
+    private static final String TAG = AbstractDao.class.getSimpleName();
+    protected SQLiteOpenHelper mOpenHelper;
+    protected String           mPrimaryKey;
 
     public abstract String getTableName();
 
@@ -34,16 +43,22 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return null;
     }
 
-    public abstract void createTable();
-
     public boolean insert(T object) {
-
-        return false;
+        return insert(object, "OR REPLACE");
     }
 
     public boolean insert(T object, String conflict) {
-
-        return false;
+        String sqlInsert = getInsertStr(object, conflict);
+        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        try {
+            db.beginTransaction();
+            db.execSQL(sqlInsert, object.getColumn2Value().values().toArray());
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+        return true;
     }
 
     public boolean insert(List<T> object) {
@@ -72,12 +87,16 @@ public abstract class AbstractDao<T extends IBaseTable> {
             return null;
         }
         String arg = getRetrieveStr(object);
-        Cursor cursor = mDatabase.rawQuery(arg, object.getValues());
-        Class<?>[] valueTypes = object.getValueTypes();
+        Cursor cursor = null;
+        Class<?>[] valueTypes = null;
+//        Cursor cursor = mDatabase.rawQuery(arg, object.getValues());
+//        Class<?>[] valueTypes = object.getValueTypes();
+//
         List<T> result = null;
         try {
             while (cursor.moveToNext()) {
-                T ele = (T) object.newOne();
+//                T ele = (T) object.newOne();
+                T ele = null;
                 Object[] columnValues = new Object[valueTypes.length];
                 for (int i = 0; i < valueTypes.length; i++) {
                     if (valueTypes[i] == Double.TYPE) {
@@ -112,7 +131,8 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (object == null) {
             return "select * from " + getTableName();
         }
-        Object[] columnValues = object.getValues();
+        Object[] columnValues = null;
+//        Object[] columnValues = object.getValues();
         if (columnValues == null) {
             throw new RuntimeException("base table entity must correct initial column value field");
         }
@@ -139,11 +159,38 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return sb.toString();
     }
 
-    protected String getInsertStr(T object, String conflict) {
+    protected String getInsertStr(T object, String conflictAlgorithm) {
         if (object == null) {
             return null;
         }
-        return null;
+        StringBuilder sb = new StringBuilder();
+        StringBuilder valueSb = new StringBuilder();
+        sb.append("INSERT ");
+        if (!TextUtils.isEmpty(conflictAlgorithm)) {
+            sb.append(conflictAlgorithm);
+        }
+        sb.append(" INTO ")
+        .append(getTableName());
+        sb.append(" ");
+        Set<Map.Entry<String, Object>> entries = object.getColumn2Value().entrySet();
+        Iterator<Map.Entry<String, Object>> iterator = entries.iterator();
+        boolean fistNotNullValue = false;
+        while (iterator.hasNext()) {
+            Map.Entry<String, Object> entry = iterator.next();
+            if (!fistNotNullValue) {
+                fistNotNullValue = true;
+                sb.append("(");
+                valueSb.append("(");
+            } else {
+                sb.append(",");
+                valueSb.append(",");
+            }
+            sb.append(entry.getKey());
+            valueSb.append("?");
+        }
+        sb.append(") VALUES ").append(valueSb).append(")");
+        LLog.d(TAG, sb.toString());
+        return sb.toString();
     }
 
 }
