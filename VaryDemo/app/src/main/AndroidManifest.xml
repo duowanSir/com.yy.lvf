@@ -57,9 +57,12 @@
         <activity
             android:name=".demo.event.HorizontalSlideActivity"
             android:launchMode="standard"/>
+
         <activity
             android:name=".demo.event.ActivityVideoList"
             android:launchMode="standard"/>
+
+        <activity android:name=".demo.animation.ActivityPropertyAnimation"/>
 
         <service
             android:name=".demo.component.ServiceRemoteCompute"
