@@ -27,20 +27,26 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
 
     public static final String TAG = ActivityVideoList.class.getSimpleName();
 
-    private RelativeLayout mCurtainLayout;
-    private TextView       mInfoTv;
-    private View           mVideoView;
-    private ListView       mLv;
+    private DebugFrameLayout  mDebugFrameLayout;
+    private RelativeLayout    mCurtainLayout;
+    private TextView          mInfoTv;
+    private DebugLinearLayout mVideoContainerLayout;
+    private View              mVideoView;
+    private DebugListView     mLv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_list);
+        mDebugFrameLayout = (DebugFrameLayout) findViewById(R.id.debug_frame_layout);
         mCurtainLayout = (RelativeLayout) findViewById(R.id.curtain_layout);
         mInfoTv = (TextView) findViewById(R.id.info_tv);
+        mVideoContainerLayout = (DebugLinearLayout) findViewById(R.id.video_container_layout);
         mVideoView = findViewById(R.id.video_view);
-        mLv = (ListView) findViewById(R.id.lv);
+        mLv = (DebugListView) findViewById(R.id.lv);
 
+        mVideoContainerLayout.setOnClickListener(this);
+        mVideoView.setOnClickListener(this);
         mLv.setAdapter(new BaseAdapter() {
 
             @Override
@@ -80,11 +86,12 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
                                 mInfoTv.setText("[" + drawingRect.left + ", " + drawingRect.top + ", " + drawingRect.right + ", " + drawingRect.bottom + "]" + "\n" +
                                         "[" + displayRect.left + ", " + displayRect.top + ", " + displayRect.right + ", " + displayRect.bottom + "]" + "\n" +
                                         "[" + v.getLeft() + ", " + v.getTop() + ", " + v.getRight() + ", " + v.getBottom() + "]");
-                                RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) mVideoView.getLayoutParams();
+                                ViewGroup.LayoutParams lp = (ViewGroup.LayoutParams) mVideoView.getLayoutParams();
                                 lp.height = drawingRect.height();
 //                                lp.topMargin = v.getTop();
                                 mVideoView.setLayoutParams(lp);
                                 mCurtainLayout.setVisibility(View.VISIBLE);
+                                mDebugFrameLayout.setView(mCurtainLayout);
                                 setListViewChildrenVisibility(View.INVISIBLE);
                             }
                         }
@@ -107,6 +114,7 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 mCurtainLayout.setVisibility(View.GONE);
+                mDebugFrameLayout.setView(null);
                 setListViewChildrenVisibility(View.VISIBLE);
             }
         });
@@ -116,6 +124,8 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
     public void onClick(View v) {
         if (v.getId() == R.id.video_view) {
             Toast.makeText(this, "video_view", Toast.LENGTH_SHORT).show();
+        } else if (v.getId() == R.id.video_container_layout) {
+            Toast.makeText(this, "video_container_layout", Toast.LENGTH_SHORT).show();
         }
     }
 

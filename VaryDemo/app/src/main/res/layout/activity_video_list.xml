@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<com.android.lvf.demo.event.DebugFrameLayout
+    android:id="@+id/debug_frame_layout"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -18,22 +19,27 @@
             android:textColor="@android:color/white"
             android:textSize="12sp"/>
 
-        <View
-            android:id="@+id/video_view"
+        <com.android.lvf.demo.event.DebugLinearLayout
+            android:id="@+id/video_container_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:background="@android:color/holo_blue_bright"
-            android:onClick="onClick"/>
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/video_view"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:background="@android:color/holo_blue_bright"/>
+        </com.android.lvf.demo.event.DebugLinearLayout>
 
     </RelativeLayout>
 
-    <ListView
+    <com.android.lvf.demo.event.DebugListView
         android:id="@+id/lv"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:divider="@null">
+        android:layout_height="match_parent">
 
-    </ListView>
+    </com.android.lvf.demo.event.DebugListView>
 
-</FrameLayout>
+</com.android.lvf.demo.event.DebugFrameLayout>

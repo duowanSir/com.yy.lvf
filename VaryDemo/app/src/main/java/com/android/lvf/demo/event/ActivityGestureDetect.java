@@ -27,9 +27,9 @@ public class ActivityGestureDetect extends Activity implements CompoundButton.On
 
     public static final String TAG = ActivityGestureDetect.class.getSimpleName();
 
-    private FrameLayout mContainerLayout;
-    private ListView    mLv;
-    private DebugLayout mDebugLayout;
+    private FrameLayout       mContainerLayout;
+    private ListView          mLv;
+    private DebugLinearLayout mDebugLinearLayout;
 
     private CheckBox mDownCb;
     private CheckBox mSingleTapUpCb;
@@ -78,7 +78,7 @@ public class ActivityGestureDetect extends Activity implements CompoundButton.On
         mContainerLayout = (FrameLayout) LayoutInflater.from(this).inflate(R.layout.activity_gesture_detect, null);
         setContentView(mContainerLayout);
         mLv = (ListView) findViewById(R.id.lv);
-        mDebugLayout = (DebugLayout) findViewById(R.id.debug_layout);
+        mDebugLinearLayout = (DebugLinearLayout) findViewById(R.id.debug_layout);
         mDownCb = (CheckBox) findViewById(R.id.down_cb);
         mSingleTapUpCb = (CheckBox) findViewById(R.id.single_tap_up_cb);
         mScrollCb = (CheckBox) findViewById(R.id.scroll_cb);

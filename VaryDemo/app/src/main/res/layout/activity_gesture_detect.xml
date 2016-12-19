@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.android.lvf.demo.event.DebugLayout
+    <com.android.lvf.demo.event.DebugLinearLayout
         android:id="@+id/debug_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -85,7 +85,7 @@
 
         </LinearLayout>
 
-    </com.android.lvf.demo.event.DebugLayout>
+    </com.android.lvf.demo.event.DebugLinearLayout>
 
     <ListView
         android:id="@+id/lv"
