@@ -47,6 +47,7 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
 
         mVideoContainerLayout.setOnClickListener(this);
         mVideoView.setOnClickListener(this);
+        mLv.setEnabled(false);
         mLv.setAdapter(new BaseAdapter() {
 
             @Override
