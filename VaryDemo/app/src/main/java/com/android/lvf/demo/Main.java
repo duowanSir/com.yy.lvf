@@ -1,7 +1,6 @@
 package com.android.lvf.demo;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -15,20 +14,19 @@ import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.lvf.demo.animation.ActivityPropertyAnimation;
-import com.android.lvf.demo.db.DaoManager;
-import com.android.lvf.demo.db.table.VideoInfo;
-import com.android.lvf.demo.event.ActivityVideoList;
-import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.ICompute;
-import com.android.lvf.demo.event.ActivityGestureDetect;
 import com.android.lvf.R;
-import com.android.lvf.demo.component.ServiceRemoteCompute;
+import com.android.lvf.demo.animation.ActivityPropertyAnimation;
 import com.android.lvf.demo.component.ActivitySingleInstance;
 import com.android.lvf.demo.component.ActivitySingleTask;
 import com.android.lvf.demo.component.ActivitySingleTop;
 import com.android.lvf.demo.component.ActivityStandard;
-import com.android.lvf.demo.surface.TestSurfaceViewAndTextureView;
+import com.android.lvf.demo.component.ServiceRemoteCompute;
+import com.android.lvf.demo.db.DaoManager;
+import com.android.lvf.demo.db.table.VideoInfo;
+import com.android.lvf.demo.event.ActivityVideoList;
+import com.android.lvf.demo.event.HorizontalSlideActivity;
+import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
 
 
 public class Main extends Activity implements OnClickListener {
@@ -89,7 +87,7 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.unbind_service) {
             unbindService(mServiceConnection);
         } else if (v.getId() == R.id.surface_and_texture) {
-            Intent intent = new Intent(this, TestSurfaceViewAndTextureView.class);
+            Intent intent = new Intent(this, ActivitySurfaceCanvasUse.class);
             startActivity(intent);
         } else if (v.getId() == R.id.video_list) {
             Intent intent = new Intent(this, ActivityVideoList.class);
