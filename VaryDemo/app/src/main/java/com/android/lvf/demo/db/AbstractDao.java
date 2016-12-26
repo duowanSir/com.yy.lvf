@@ -7,13 +7,11 @@ import android.text.TextUtils;
 
 import com.android.lvf.LLog;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.IllegalFormatCodePointException;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Created by slowergun on 2016/12/14.
@@ -48,11 +46,11 @@ public abstract class AbstractDao<T extends IBaseTable> {
     }
 
     public boolean insert(T object, String conflict) {
-        String sqlInsert = getInsertStr(object, conflict);
+        String sqlInsert = getSqlInsert(object, conflict);
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         try {
             db.beginTransaction();
-            db.execSQL(sqlInsert, object.getColumn2Value().values().toArray());
+            db.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
@@ -61,17 +59,69 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return true;
     }
 
-    public boolean insert(List<T> object) {
-
-        return false;
+    public boolean insert(List<T> objects, String conflict) {
+        String sqlInsert = getSqlInsert(objects, conflict);
+        if (TextUtils.isEmpty(sqlInsert)) {
+            return false;
+        }
+        List<Object> argObjects = new ArrayList<>();
+        for (T each : objects) {
+            if (each == null) {
+                continue;
+            }
+            argObjects.addAll(each.getColumnIndex2Value().values());
+        }
+        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        try {
+            db.beginTransaction();
+            db.execSQL(sqlInsert, argObjects.toArray());
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+        return true;
     }
 
     public boolean delete(T object) {
-        return false;
+        String sqlDelete = getSqlDelete(object);
+        if (TextUtils.isEmpty(sqlDelete)) {
+            return false;
+        }
+        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        try {
+            db.beginTransaction();
+            db.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+        return true;
     }
 
-    public boolean delete(List<T> objects) {
-        return false;
+    public boolean delete(List<T> tObjects) {
+        String sqlDel = getSqlDelete(tObjects);
+        if (TextUtils.isEmpty(sqlDel)) {
+            return false;
+        }
+        List<Object> argObjects = new ArrayList<>();
+        for (T each : tObjects) {
+            if (each == null) {
+                continue;
+            }
+            argObjects.addAll(each.getColumnIndex2Value().values());
+        }
+        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        try {
+            db.beginTransaction();
+            db.execSQL(sqlDel, argObjects.toArray());
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+        return true;
     }
 
     public boolean update(T object) {
@@ -86,38 +136,39 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (object == null) {
             return null;
         }
-        String arg = getRetrieveStr(object);
-        Cursor cursor = null;
-        Class<?>[] valueTypes = null;
-//        Cursor cursor = mDatabase.rawQuery(arg, object.getValues());
-//        Class<?>[] valueTypes = object.getValueTypes();
-//
-        List<T> result = null;
+        String sqlRetrieve = getSqlRetrieve(object);
+        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+        String[] selectionArgs = null;
+        if (!object.getColumnIndex2Value().isEmpty()) {
+            selectionArgs = new String[]{String.valueOf(object.getColumnIndex2Value().get(getPrimaryKey()))};
+        }
+        Cursor cursor = db.rawQuery(sqlRetrieve, selectionArgs);
+        LinkedHashMap<Integer, Class<?>> i2t = object.getColumnIndex2Type();
+        if (i2t.isEmpty()) {
+            throw new RuntimeException("index 2 type correspond should be implemented first");
+        }
+        List<T> result = new ArrayList<>();
         try {
             while (cursor.moveToNext()) {
-//                T ele = (T) object.newOne();
-                T ele = null;
-                Object[] columnValues = new Object[valueTypes.length];
-                for (int i = 0; i < valueTypes.length; i++) {
-                    if (valueTypes[i] == Double.TYPE) {
-                        columnValues[i] = cursor.getDouble(i);
-                    } else if (valueTypes[i] == Float.TYPE) {
-                        columnValues[i] = cursor.getFloat(i);
-                    } else if (valueTypes[i] == Integer.TYPE) {
-                        columnValues[i] = cursor.getInt(i);
-                    } else if (valueTypes[i] == String.class) {
-                        columnValues[i] = cursor.getString(i);
-                    } else if (valueTypes[i] == Short.TYPE) {
-                        columnValues[i] = cursor.getShort(i);
-                    } else if (valueTypes[i] == Integer.TYPE) {
-                        columnValues[i] = cursor.getLong(i);
-                    } else if (valueTypes[i] == Integer.TYPE) {
-                        columnValues[i] = cursor.getBlob(i);
+                T ele = (T) object.create();
+                Iterator<Map.Entry<Integer, Class<?>>> iterator = i2t.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<Integer, Class<?>> entry = iterator.next();
+                    Integer index = entry.getKey();
+                    Class<?> type = entry.getValue();
+                    if (type == Double.class) {
+                        ele.putByColumnIndex2Value(index, cursor.getDouble(index));
+                    } else if (type == Float.class) {
+                        ele.putByColumnIndex2Value(index, cursor.getFloat(index));
+                    } else if (type == Integer.class) {
+                        ele.putByColumnIndex2Value(index, cursor.getInt(index));
+                    } else if (type == Long.class) {
+                        ele.putByColumnIndex2Value(index, cursor.getLong(index));
+                    } else if (type == Short.class) {
+                        ele.putByColumnIndex2Value(index, cursor.getShort(index));
+                    } else if (type == String.class) {
+                        ele.putByColumnIndex2Value(index, cursor.getString(index));
                     }
-                }
-                // 设置值
-                if (result == null) {
-                    result = new ArrayList<>();
                 }
                 result.add(ele);
             }
@@ -127,40 +178,12 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return result;
     }
 
-    protected String getRetrieveStr(T object) {
+    protected String getSqlInsert(T object, String conflictAlgorithm) {
         if (object == null) {
-            return "select * from " + getTableName();
+            return null;
         }
-        Object[] columnValues = null;
-//        Object[] columnValues = object.getValues();
-        if (columnValues == null) {
-            throw new RuntimeException("base table entity must correct initial column value field");
-        }
-        if (columnValues.length != getColumnNames().length) {
-            throw new RuntimeException("column value count must correspond to column name count");
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append("select * from ")
-                .append(getTableName());
-        boolean isFirst = true;
-        for (int i = 0; i < columnValues.length; i++) {
-            if (columnValues[i] != null) {
-                if (isFirst) {
-                    sb.append(" where ");
-                }
-                if (isFirst) {
-                    isFirst = false;
-                } else {
-                    sb.append(" & ");
-                }
-                sb.append(getColumnNames()[i]).append(" = ").append("?");
-            }
-        }
-        return sb.toString();
-    }
-
-    protected String getInsertStr(T object, String conflictAlgorithm) {
-        if (object == null) {
+        LinkedHashMap<Integer, Object> i2v = object.getColumnIndex2Value();
+        if (i2v.isEmpty()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
@@ -169,27 +192,101 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (!TextUtils.isEmpty(conflictAlgorithm)) {
             sb.append(conflictAlgorithm);
         }
-        sb.append(" INTO ")
-        .append(getTableName());
-        sb.append(" ");
-        Set<Map.Entry<String, Object>> entries = object.getColumn2Value().entrySet();
-        Iterator<Map.Entry<String, Object>> iterator = entries.iterator();
-        boolean fistNotNullValue = false;
+        sb.append(" INTO ").append(getTableName());
+        Iterator<Map.Entry<Integer, Object>> iterator = i2v.entrySet().iterator();
+        boolean firstColumn = true;
         while (iterator.hasNext()) {
-            Map.Entry<String, Object> entry = iterator.next();
-            if (!fistNotNullValue) {
-                fistNotNullValue = true;
+            Map.Entry<Integer, Object> entry = iterator.next();
+            if (firstColumn) {
                 sb.append("(");
                 valueSb.append("(");
+                firstColumn = false;
             } else {
                 sb.append(",");
                 valueSb.append(",");
             }
-            sb.append(entry.getKey());
+            sb.append(getColumnNames()[entry.getKey()]);
             valueSb.append("?");
         }
         sb.append(") VALUES ").append(valueSb).append(")");
         LLog.d(TAG, sb.toString());
+        return sb.toString();
+    }
+
+    protected String getSqlInsert(List<T> objects, String conflictAlgorithm) {
+        if (objects == null || objects.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (T each : objects) {
+            sb.append(getSqlInsert(each, conflictAlgorithm)).append(";");
+        }
+        LLog.d(TAG, sb.toString());
+        return sb.toString();
+    }
+
+    protected String getSqlDelete(T object) {
+        if (object == null) {
+            return null;
+        }
+        LinkedHashMap<Integer, Object> i2v = object.getColumnIndex2Value();
+        if (i2v.isEmpty()) {
+            return null;
+        }
+        StringBuilder sqlDel = new StringBuilder();
+        sqlDel.append("DELETE FROM " + getTableName());
+        Iterator<Map.Entry<Integer, Object>> iterator = i2v.entrySet().iterator();
+        boolean firstCondition = true;
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, Object> entry = iterator.next();
+            if (firstCondition) {
+                sqlDel.append(" WHERE ");
+            }
+            sqlDel.append(getColumnNames()[entry.getKey()]).
+                    append(" = ").
+                    append("?");
+            if (!firstCondition) {
+                sqlDel.append(" AND ");
+            }
+        }
+        LLog.d(TAG, sqlDel.toString());
+        return sqlDel.toString();
+    }
+
+    protected String getSqlDelete(List<T> objects) {
+        if (objects == null || objects.isEmpty()) {
+            return null;
+        }
+        StringBuilder sqlDel = new StringBuilder();
+        for (T object : objects) {
+            if (object == null) {
+                continue;
+            }
+            sqlDel.append(getSqlDelete(object)).append(";");
+        }
+        LLog.d(TAG, sqlDel.toString());
+        return sqlDel.toString();
+    }
+
+    protected String getSqlRetrieve(T object) {
+        if (object == null || object.getColumnIndex2Value().isEmpty()) {
+            return "SELECT * FROM " + getTableName();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT * FROM ").
+                append(getTableName()).
+                append(" WHERE ").
+                append(getPrimaryKey()).
+                append(" = ?");
+        return sb.toString();
+    }
+
+    protected String getSqlUpdate(T object) {
+        LinkedHashMap<Integer, Object> i2v = object.getColumnIndex2Value();
+        if (object == null || i2v.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
         return sb.toString();
     }
 
