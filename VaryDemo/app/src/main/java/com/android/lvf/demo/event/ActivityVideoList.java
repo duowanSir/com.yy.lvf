@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
@@ -32,7 +31,7 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
     private TextView          mInfoTv;
     private DebugLinearLayout mVideoContainerLayout;
     private View              mVideoView;
-    private DebugListView     mLv;
+    private ListView          mLv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,11 +42,11 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
         mInfoTv = (TextView) findViewById(R.id.info_tv);
         mVideoContainerLayout = (DebugLinearLayout) findViewById(R.id.video_container_layout);
         mVideoView = findViewById(R.id.video_view);
-        mLv = (DebugListView) findViewById(R.id.lv);
+        mLv = (ListView) findViewById(R.id.lv);
 
+        mCurtainLayout.setVisibility(View.GONE);
         mVideoContainerLayout.setOnClickListener(this);
         mVideoView.setOnClickListener(this);
-        mLv.setEnabled(false);
         mLv.setAdapter(new BaseAdapter() {
 
             @Override
@@ -87,10 +86,10 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
                                 mInfoTv.setText("[" + drawingRect.left + ", " + drawingRect.top + ", " + drawingRect.right + ", " + drawingRect.bottom + "]" + "\n" +
                                         "[" + displayRect.left + ", " + displayRect.top + ", " + displayRect.right + ", " + displayRect.bottom + "]" + "\n" +
                                         "[" + v.getLeft() + ", " + v.getTop() + ", " + v.getRight() + ", " + v.getBottom() + "]");
-                                ViewGroup.LayoutParams lp = (ViewGroup.LayoutParams) mVideoView.getLayoutParams();
+                                RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) mVideoContainerLayout.getLayoutParams();
                                 lp.height = drawingRect.height();
-//                                lp.topMargin = v.getTop();
-                                mVideoView.setLayoutParams(lp);
+                                lp.topMargin = v.getTop();
+                                mVideoContainerLayout.setLayoutParams(lp);
                                 mCurtainLayout.setVisibility(View.VISIBLE);
                                 mDebugFrameLayout.setView(mCurtainLayout);
                                 setListViewChildrenVisibility(View.INVISIBLE);
@@ -124,9 +123,9 @@ public class ActivityVideoList extends Activity implements View.OnClickListener 
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.video_view) {
-            Toast.makeText(this, "video_view", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "child", Toast.LENGTH_SHORT).show();
         } else if (v.getId() == R.id.video_container_layout) {
-            Toast.makeText(this, "video_container_layout", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "parent", Toast.LENGTH_SHORT).show();
         }
     }
 
