@@ -1,6 +1,9 @@
 package com.android.lvf.demo;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +11,8 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemClock;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -21,6 +26,7 @@ import com.android.lvf.demo.component.ActivitySingleInstance;
 import com.android.lvf.demo.component.ActivitySingleTask;
 import com.android.lvf.demo.component.ActivitySingleTop;
 import com.android.lvf.demo.component.ActivityStandard;
+import com.android.lvf.demo.component.BroadcastReceiverTest;
 import com.android.lvf.demo.component.ServiceRemoteCompute;
 import com.android.lvf.demo.db.DaoManager;
 import com.android.lvf.demo.db.table.VideoInfo;
@@ -105,9 +111,32 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.update) {
         } else if (v.getId() == R.id.retrieve) {
         } else if (v.getId() == R.id.delete) {
+        } else if (v.getId() == R.id.alarm_receiver) {
+            testAlarm(BroadcastReceiverTest.class);
+        } else if (v.getId() == R.id.alarm_service) {
+            testAlarm(ServiceRemoteCompute.class);
         } else {
             throw new RuntimeException("unprocessed click event");
         }
+    }
+
+    private void testAlarm(Class<?> clazz) {
+        Intent intent = new Intent(this, clazz);
+        String superClassName = clazz.getSuperclass().getSimpleName();
+        if (TextUtils.isEmpty(superClassName)) {
+            return;
+        }
+        superClassName = superClassName.toLowerCase();
+        PendingIntent pi;
+        if (superClassName.equals("service")) {
+            pi = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        } else if (superClassName.equals("broadcastreceiver")) {
+            pi = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        } else {
+            return;
+        }
+        AlarmManager alarmManager = getSystemService(AlarmManager.class);
+        alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime(), 10000, pi);
     }
 
     @Override

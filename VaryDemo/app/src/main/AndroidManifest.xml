@@ -67,6 +67,8 @@
         <service
             android:name=".demo.component.ServiceRemoteCompute"
             android:process="com.android.lvf.remote"/>
+
+        <receiver android:name=".demo.component.BroadcastReceiverTest"/>
     </application>
 
     <uses-feature android:name="android.hardware.Camera"/>
