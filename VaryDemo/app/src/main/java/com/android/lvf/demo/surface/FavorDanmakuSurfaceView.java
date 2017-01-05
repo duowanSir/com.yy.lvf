@@ -141,13 +141,13 @@ public class FavorDanmakuSurfaceView extends SurfaceView implements SurfaceHolde
             mProceed.clear();
             for (int i = 0; i < 8; i++) {
                 if (i >= 2 && i <= 5) {
-                    Bitmap bmp = BitmapFactory.decodeResource(res, mCenterDanmakuArray[centerRandom.nextInt()]);
-                    BitmapDanmaku bd = new BitmapDanmaku(bmp, 0, 200 * i, 0, BitmapDanmaku.MAX_Y);
+                    Bitmap bmp = BitmapFactory.decodeResource(res, mCenterDanmakuArray[Math.abs(centerRandom.nextInt()) % mCenterDanmakuArray.length]);
+                    BitmapDanmaku bd = new BitmapDanmaku(bmp, 100 * i, 200 * i, 100 * i, BitmapDanmaku.MAX_Y);
                     bd.setYSpeed(mFps, mDurationMs);
                     mProceed.add(bd);
                 } else {
-                    Bitmap bmp = BitmapFactory.decodeResource(res, mOtherDanmakuArray[otherRandom.nextInt()]);
-                    BitmapDanmaku bd = new BitmapDanmaku(bmp, 0, 200 * i, 0, BitmapDanmaku.MAX_Y);
+                    Bitmap bmp = BitmapFactory.decodeResource(res, mOtherDanmakuArray[Math.abs(centerRandom.nextInt()) % mOtherDanmakuArray.length]);
+                    BitmapDanmaku bd = new BitmapDanmaku(bmp, 100 * i, 200 * i, 100 * i, BitmapDanmaku.MAX_Y);
                     bd.setYSpeed(mFps, mDurationMs);
                     mProceed.add(bd);
                 }
@@ -162,6 +162,7 @@ public class FavorDanmakuSurfaceView extends SurfaceView implements SurfaceHolde
                     mSurfaceHolder.unlockCanvasAndPost(canvas);
                     return;
                 }
+                mFinished = true;
                 for (BitmapDanmaku each : mProceed) {
                     if (each.mYCurrent < each.mYEnd) {
                         mFinished = false;

@@ -49,7 +49,7 @@ public class BitmapDanmaku {
         if (frames < 1) {
             return false;
         }
-        mXSpeed = (mXEnd - mYEnd) / (float) frames;
+        mXSpeed = (mXEnd - mXStart) / (float) frames;
         mYSpeed = (mYEnd - mYStart) / (float) frames;
         return true;
     }

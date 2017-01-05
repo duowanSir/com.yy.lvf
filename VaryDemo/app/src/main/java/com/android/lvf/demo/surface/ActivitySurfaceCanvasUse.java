@@ -11,11 +11,13 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.android.lvf.R;
 import com.android.lvf.demo.surface.entity.BitmapDanmaku;
 
 import java.util.LinkedList;
+import java.util.Random;
 
 /**
  * Created by slowergun on 2016/12/26.
@@ -32,12 +34,17 @@ public class ActivitySurfaceCanvasUse extends Activity  implements View.OnClickL
         mFavorBtn = (Button) findViewById(R.id.favor_btn);
 
         mFavorBtn.setOnClickListener(this);
+        BitmapDanmaku.MAX_Y = 1920;
+        BitmapDanmaku.MAX_X = 1080;
     }
 
+    private Random random= new Random();
+    private Random random1 = new Random(10);
     @Override
     public void onClick(View v) {
         if (v == mFavorBtn) {
-            mFavorDanmakuSurfaceView.favor(15, 500);
+            mFavorDanmakuSurfaceView.favor(30, 500);
+//            Toast.makeText(this,"" + random.nextInt() + ", " + random1.nextInt(),Toast.LENGTH_SHORT).show();
         }
     }
 }
