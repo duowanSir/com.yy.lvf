@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <SurfaceView
-        android:id="@+id/surface_view"
+    <com.android.lvf.demo.surface.FavorDanmakuSurfaceView
+        android:id="@+id/favor_danmaku_surface_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-</LinearLayout>
+    <Button
+        android:id="@+id/favor_btn"
+        android:layout_width="200dp"
+        android:layout_height="300dp"
+        android:text="favor_btn"/>
+
+</FrameLayout>

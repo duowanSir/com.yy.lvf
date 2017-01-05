@@ -5,10 +5,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
@@ -27,6 +30,10 @@ import com.android.lvf.demo.db.table.VideoInfo;
 import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
+
+import java.lang.ref.SoftReference;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class Main extends Activity implements OnClickListener {
@@ -64,6 +71,8 @@ public class Main extends Activity implements OnClickListener {
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.standard) {
+            SoftReference<Map<Long, Long>> cache = new SoftReference<Map<Long, Long>>(new HashMap<Long, Long>());
+            cache.get().put(1l, 1l);
             Intent intent = new Intent(this, ActivityStandard.class);
             startActivity(intent);
         } else if (v.getId() == R.id.single_top) {

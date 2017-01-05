@@ -20,6 +20,14 @@ android {
     sourceSets {
         main { jniLibs.srcDirs = ['libs'] }
     }
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a'
+            universalApk false
+        }
+    }
 }
 
 dependencies {
@@ -27,6 +35,11 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.3.0'
     compile project(':ijkplayerwidget')
-    compile files('libs/smartdns-2.0.7.jar')
-    compile files('libs/YYPlayerSDK-lib.jar')
+    compile 'com.yy.yyplayer.playcore:YYPlayerSDK-lib:1.6.1'
+}
+
+apply plugin: 'android-native-dependencies'
+
+native_dependencies {
+    artifact 'org.ffmpeg.algorithmcenter:ffmpeg-neon:271.100.002:armeabi-v7a'
 }
