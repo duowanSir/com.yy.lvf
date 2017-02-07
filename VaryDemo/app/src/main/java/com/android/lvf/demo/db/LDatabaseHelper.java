@@ -4,9 +4,8 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.duowan.orz.LLog;
-import com.duowan.orz.db.dao.VideoInfoDao;
-
+import com.android.lvf.LLog;
+import com.android.lvf.demo.db.dao.VideoInfoDao;
 
 /**
  * Created by 烽 on 2016/12/14.

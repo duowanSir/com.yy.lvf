@@ -3,13 +3,16 @@ package com.android.lvf.demo.db.table;
 
 import com.android.lvf.demo.db.IBaseTable;
 
+import java.io.Serializable;
 import java.util.LinkedHashMap;
 
 /**
  * Created by slowergun on 2016/12/14.
  */
-public class VideoInfo implements IBaseTable {
-    private static final String TAG = VideoInfo.class.getSimpleName();
+public class VideoInfo implements IBaseTable,
+        Serializable {
+    private static final String TAG        = VideoInfo.class.getSimpleName();
+    public static final  String TABLE_NAME = VideoInfo.class.getSimpleName();
     /**
      * 表字段,请勿改动顺序
      */

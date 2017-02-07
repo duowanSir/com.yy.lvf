@@ -25,6 +25,10 @@ public abstract class AbstractDao<T extends IBaseTable> {
         DATABASE_INSTANCE = sqLiteDatabase;
     }
 
+    public static SQLiteDatabase getDatabase() {
+        return DATABASE_INSTANCE;
+    }
+
     protected String mPrimaryKey;
 
     public abstract String getTableName();
@@ -99,16 +103,17 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (TextUtils.isEmpty(sqlDelete)) {
             return false;
         }
-        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
-            db.setTransactionSuccessful();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            db.endTransaction();
+        synchronized (DATABASE_INSTANCE) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                DATABASE_INSTANCE.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
+            }
         }
         return true;
     }
@@ -143,26 +148,26 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (tObjects == null || tObjects.isEmpty()) {
             return true;
         }
-        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
-        try {
-            db.beginTransaction();
-            for (T each : tObjects) {
-                if (each == null) {
-                    continue;
+        synchronized (DATABASE_INSTANCE) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                for (T each : tObjects) {
+                    if (each == null) {
+                        continue;
+                    }
+                    String sqlDelete = getSqlDelete(each);
+                    if (TextUtils.isEmpty(sqlDelete)) {
+                        continue;
+                    }
+                    DATABASE_INSTANCE.execSQL(sqlDelete, each.getColumnIndex2Value().values().toArray());
                 }
-                String sqlDelete = getSqlDelete(each);
-                if (TextUtils.isEmpty(sqlDelete)) {
-                    continue;
-                }
-                db.execSQL(sqlDelete, each.getColumnIndex2Value().values().toArray());
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
             }
-
-            db.setTransactionSuccessful();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            db.endTransaction();
         }
         return true;
     }
@@ -181,12 +186,14 @@ public abstract class AbstractDao<T extends IBaseTable> {
             return null;
         }
         String sqlRetrieve = getSqlRetrieve(object);
-        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
         String[] selectionArgs = null;
         if (!object.getColumnIndex2Value().isEmpty()) {
             selectionArgs = new String[]{String.valueOf(object.getColumnIndex2Value().get(getPrimaryKey()))};
         }
-        Cursor cursor = db.rawQuery(sqlRetrieve, selectionArgs);
+        Cursor cursor = null;
+        synchronized (DATABASE_INSTANCE) {
+            cursor = DATABASE_INSTANCE.rawQuery(sqlRetrieve, selectionArgs);
+        }
         LinkedHashMap<Integer, Class<?>> i2t = object.getColumnIndex2Type();
         if (i2t.isEmpty()) {
             throw new RuntimeException("index 2 type correspond should be implemented first");

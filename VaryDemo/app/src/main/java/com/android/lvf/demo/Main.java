@@ -118,7 +118,7 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.insert) {
             long timeMs = System.currentTimeMillis();
             int timeS = (int) (timeMs / 1000);
-            DaoManager.getInstance().getVideoInfoDao().insert(new VideoInfo(timeMs, timeS, timeS, timeS, false));
+            DaoManager.getInstance().getVideoInfoDao().insert(new VideoInfo(timeMs, timeS, timeS, timeS, false, timeS));
         } else if (v.getId() == R.id.update) {
         } else if (v.getId() == R.id.retrieve) {
         } else if (v.getId() == R.id.delete) {
