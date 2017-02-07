@@ -2,7 +2,6 @@ package com.android.lvf.demo.db;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
 import com.android.lvf.LLog;
@@ -18,8 +17,15 @@ import java.util.Map;
  */
 public abstract class AbstractDao<T extends IBaseTable> {
     private static final String TAG = AbstractDao.class.getSimpleName();
-    protected SQLiteOpenHelper mOpenHelper;
-    protected String           mPrimaryKey;
+    private static SQLiteDatabase DATABASE_INSTANCE;
+
+    private final Object mLock = new Object();
+
+    public static void setDatabase(SQLiteDatabase sqLiteDatabase) {
+        DATABASE_INSTANCE = sqLiteDatabase;
+    }
+
+    protected String mPrimaryKey;
 
     public abstract String getTableName();
 
@@ -47,38 +53,43 @@ public abstract class AbstractDao<T extends IBaseTable> {
 
     public boolean insert(T object, String conflict) {
         String sqlInsert = getSqlInsert(object, conflict);
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
+        synchronized (mLock) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                DATABASE_INSTANCE.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
+            }
         }
         return true;
     }
 
+    /**
+     * Multiple statements separated by semicolons are not supported.
+     */
     public boolean insert(List<T> objects, String conflict) {
-        String sqlInsert = getSqlInsert(objects, conflict);
-        if (TextUtils.isEmpty(sqlInsert)) {
+        if (objects == null || objects.isEmpty()) {
             return false;
         }
-        List<Object> argObjects = new ArrayList<>();
-        for (T each : objects) {
-            if (each == null) {
-                continue;
+        synchronized (mLock) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                for (T each:
+                     objects) {
+                    String sqlInsert = getSqlInsert(each, conflict);
+                    DATABASE_INSTANCE.execSQL(sqlInsert, each.getColumnIndex2Value().values().toArray());
+                }
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
             }
-            argObjects.addAll(each.getColumnIndex2Value().values());
-        }
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlInsert, argObjects.toArray());
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
         }
         return true;
     }
@@ -88,41 +99,74 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (TextUtils.isEmpty(sqlDelete)) {
             return false;
         }
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
         try {
             db.beginTransaction();
             db.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
             db.setTransactionSuccessful();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         } finally {
             db.endTransaction();
-            db.close();
         }
         return true;
     }
 
+//    public boolean delete(List<T> tObjects) {
+//        String sqlDel = getSqlDelete(tObjects);
+//        if (TextUtils.isEmpty(sqlDel)) {
+//            return false;
+//        }
+//        List<Object> argObjects = new ArrayList<>();
+//        for (T each : tObjects) {
+//            if (each == null) {
+//                continue;
+//            }
+//            argObjects.addAll(each.getColumnIndex2Value().values());
+//        }
+//        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
+//        try {
+//            db.beginTransaction();
+//            db.execSQL(sqlDel, argObjects.toArray());
+//            db.setTransactionSuccessful();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return false;
+//        } finally {
+//            db.endTransaction();
+//        }
+//        return true;
+//    }
+
     public boolean delete(List<T> tObjects) {
-        String sqlDel = getSqlDelete(tObjects);
-        if (TextUtils.isEmpty(sqlDel)) {
-            return false;
+        if (tObjects == null || tObjects.isEmpty()) {
+            return true;
         }
-        List<Object> argObjects = new ArrayList<>();
-        for (T each : tObjects) {
-            if (each == null) {
-                continue;
-            }
-            argObjects.addAll(each.getColumnIndex2Value().values());
-        }
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
         try {
             db.beginTransaction();
-            db.execSQL(sqlDel, argObjects.toArray());
+            for (T each : tObjects) {
+                if (each == null) {
+                    continue;
+                }
+                String sqlDelete = getSqlDelete(each);
+                if (TextUtils.isEmpty(sqlDelete)) {
+                    continue;
+                }
+                db.execSQL(sqlDelete, each.getColumnIndex2Value().values().toArray());
+            }
+
             db.setTransactionSuccessful();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         } finally {
             db.endTransaction();
-            db.close();
         }
         return true;
     }
+
 
     public boolean update(T object) {
         return false;
@@ -137,7 +181,7 @@ public abstract class AbstractDao<T extends IBaseTable> {
             return null;
         }
         String sqlRetrieve = getSqlRetrieve(object);
-        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
         String[] selectionArgs = null;
         if (!object.getColumnIndex2Value().isEmpty()) {
             selectionArgs = new String[]{String.valueOf(object.getColumnIndex2Value().get(getPrimaryKey()))};
@@ -172,6 +216,9 @@ public abstract class AbstractDao<T extends IBaseTable> {
                 }
                 result.add(ele);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         } finally {
             cursor.close();
         }
@@ -241,13 +288,13 @@ public abstract class AbstractDao<T extends IBaseTable> {
             Map.Entry<Integer, Object> entry = iterator.next();
             if (firstCondition) {
                 sqlDel.append(" WHERE ");
+            } else {
+                sqlDel.append(" AND ");
             }
+            firstCondition = false;
             sqlDel.append(getColumnNames()[entry.getKey()]).
                     append(" = ").
                     append("?");
-            if (!firstCondition) {
-                sqlDel.append(" AND ");
-            }
         }
         LLog.d(TAG, sqlDel.toString());
         return sqlDel.toString();

@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.android.lvf.demo.db.dao.VideoInfoDao;
 
+
 /**
  * Created by 烽 on 2016/12/14.
  */
@@ -19,6 +20,8 @@ public class DaoManager {
     private Context         mContext;
     private LDatabaseHelper mOpenHelper;
 
+    private SQLiteDatabase mSqLiteDatabase;
+
     private VideoInfoDao mVideoInfoDao;
 //    private final ReentrantReadWriteLock mLock = new ReentrantReadWriteLock();
 
@@ -32,7 +35,7 @@ public class DaoManager {
         mContext = context;
         mOpenHelper = new LDatabaseHelper(mContext, LDatabaseHelper.NAME, LDatabaseHelper.VERSION);
 
-        mVideoInfoDao = new VideoInfoDao(mOpenHelper);
+        mVideoInfoDao = new VideoInfoDao();
     }
 
     private void assertContext() {
@@ -46,13 +49,11 @@ public class DaoManager {
         return mVideoInfoDao;
     }
 
-    public synchronized SQLiteDatabase getReadableDb() {
-        assertContext();
-        return mOpenHelper.getReadableDatabase();
-    }
-
-    public synchronized SQLiteDatabase getWritableDb() {
-        return mOpenHelper.getWritableDatabase();
+    public synchronized SQLiteDatabase getWritableDatabase() {
+        if (mSqLiteDatabase == null) {
+            mSqLiteDatabase = mOpenHelper.getWritableDatabase();
+        }
+        return mSqLiteDatabase;
     }
 
     public static DaoManager getInstance() {

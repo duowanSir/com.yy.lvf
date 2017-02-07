@@ -18,6 +18,7 @@ public class VideoInfo implements IBaseTable {
     public  Integer                          mClientTimestampS;
     public  Integer                          mVisibleTimeS;
     public  Boolean                          mUploaded;
+    public  Integer                          mSrc;
     /**
      * 表字段,请勿改动顺序
      */
@@ -25,19 +26,20 @@ public class VideoInfo implements IBaseTable {
     private LinkedHashMap<Integer, Class<?>> mColumnIndex2Type;
 
     public VideoInfo() {
-        this(null, null, null, null, null);
+        this(null, null, null, null, null, null);
     }
 
     public VideoInfo(Long oid) {
-        this(oid, null, null, null, null);
+        this(oid, null, null, null, null, null);
     }
 
-    public VideoInfo(Long oId, Integer serverTimestampS, Integer clientTimestampS, Integer visibleTimeS, Boolean uploaded) {
+    public VideoInfo(Long oId, Integer serverTimestampS, Integer clientTimestampS, Integer visibleTimeS, Boolean uploaded, Integer src) {
         mOId = oId;
         mServerTimestampS = serverTimestampS;
         mClientTimestampS = clientTimestampS;
         mVisibleTimeS = visibleTimeS;
         mUploaded = uploaded;
+        mSrc = src;
     }
 
     @Override
@@ -60,6 +62,9 @@ public class VideoInfo implements IBaseTable {
         if (mUploaded != null) {
             mColumnIndex2Value.put(4, mUploaded);
         }
+        if (mSrc != null) {
+            mColumnIndex2Value.put(5, mSrc);
+        }
         return mColumnIndex2Value;
     }
 
@@ -73,6 +78,7 @@ public class VideoInfo implements IBaseTable {
         mColumnIndex2Type.put(2, Integer.class);
         mColumnIndex2Type.put(3, Integer.class);
         mColumnIndex2Type.put(4, Boolean.class);
+        mColumnIndex2Type.put(5, Integer.class);
         return mColumnIndex2Type;
     }
 
@@ -92,6 +98,9 @@ public class VideoInfo implements IBaseTable {
         }
         if (index == 4) {
             mUploaded = (Boolean) value;
+        }
+        if (index == 5) {
+            mSrc = (Integer) value;
         }
     }
 
