@@ -12,8 +12,8 @@ import com.android.lvf.demo.db.dao.VideoInfoDao;
  */
 
 class LDatabaseHelper extends SQLiteOpenHelper {
-    public static final int    VERSION = 1;
-    public static final String NAME = "com.android.lvf.demo.db";
+    public static final int    VERSION = 2;
+    public static final String NAME    = "com.duowan.orz.db";
     public static final String TAG     = LDatabaseHelper.class.getSimpleName();
 
     public LDatabaseHelper(Context context, String name, int version) {
@@ -28,5 +28,8 @@ class LDatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (newVersion <= 2) {
+            db.execSQL(VideoInfoDao.UPDATE_1_2.toString());
+        }
     }
 }

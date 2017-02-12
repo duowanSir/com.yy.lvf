@@ -18,8 +18,12 @@ import java.util.Map;
  */
 public abstract class AbstractDao<T extends IBaseTable> {
     private static final String TAG = AbstractDao.class.getSimpleName();
-    protected SQLiteOpenHelper mOpenHelper;
-    protected String           mPrimaryKey;
+    private static SQLiteDatabase   DATABASE_INSTANCE;
+    protected      String           mPrimaryKey;
+
+    public static void setDatabaseInstance(SQLiteDatabase instance) {
+        DATABASE_INSTANCE = instance;
+    }
 
     public abstract String getTableName();
 
@@ -47,79 +51,87 @@ public abstract class AbstractDao<T extends IBaseTable> {
 
     public boolean insert(T object, String conflict) {
         String sqlInsert = getSqlInsert(object, conflict);
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
+        if (TextUtils.isEmpty(sqlInsert)) {
+            return false;
+        }
+        if (DATABASE_INSTANCE == null) {
+            return false;
+        }
+        synchronized (DATABASE_INSTANCE) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                DATABASE_INSTANCE.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
+                DATABASE_INSTANCE.close();
+            }
         }
         return true;
     }
 
     public boolean insert(List<T> objects, String conflict) {
-        String sqlInsert = getSqlInsert(objects, conflict);
-        if (TextUtils.isEmpty(sqlInsert)) {
+        if (DATABASE_INSTANCE == null || objects == null || objects.isEmpty()) {
             return false;
         }
-        List<Object> argObjects = new ArrayList<>();
-        for (T each : objects) {
-            if (each == null) {
-                continue;
+        synchronized (DATABASE_INSTANCE) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                for (T each : objects) {
+                    String sqlInsert = getSqlInsert(each, conflict);
+                    if (!TextUtils.isEmpty(sqlInsert)) {
+                        DATABASE_INSTANCE.execSQL(sqlInsert, each.getColumnIndex2Value().values().toArray());
+                    }
+                }
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
+                DATABASE_INSTANCE.close();
             }
-            argObjects.addAll(each.getColumnIndex2Value().values());
-        }
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlInsert, argObjects.toArray());
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
         }
         return true;
     }
 
     public boolean delete(T object) {
+        if (DATABASE_INSTANCE == null) {
+            return false;
+        }
         String sqlDelete = getSqlDelete(object);
         if (TextUtils.isEmpty(sqlDelete)) {
             return false;
         }
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
+        synchronized (DATABASE_INSTANCE) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                DATABASE_INSTANCE.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
+                DATABASE_INSTANCE.close();
+            }
         }
         return true;
     }
 
-    public boolean delete(List<T> tObjects) {
-        String sqlDel = getSqlDelete(tObjects);
-        if (TextUtils.isEmpty(sqlDel)) {
+    public boolean delete(List<T> objects) {
+        if (DATABASE_INSTANCE == null || objects == null || objects.isEmpty()) {
             return false;
         }
-        List<Object> argObjects = new ArrayList<>();
-        for (T each : tObjects) {
-            if (each == null) {
-                continue;
+        synchronized (DATABASE_INSTANCE) {
+            try {
+                DATABASE_INSTANCE.beginTransaction();
+                for (T each:objects
+                        ) {
+                    String sqlDelete = getSqlDelete(each);
+                    if (!TextUtils.isEmpty(sqlDelete)) {
+                        DATABASE_INSTANCE.execSQL(sqlDelete, each.getColumnIndex2Value().values().toArray());
+                    }
+                }
+                DATABASE_INSTANCE.setTransactionSuccessful();
+            } finally {
+                DATABASE_INSTANCE.endTransaction();
+                DATABASE_INSTANCE.close();
             }
-            argObjects.addAll(each.getColumnIndex2Value().values());
-        }
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        try {
-            db.beginTransaction();
-            db.execSQL(sqlDel, argObjects.toArray());
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            db.close();
         }
         return true;
     }
@@ -137,12 +149,12 @@ public abstract class AbstractDao<T extends IBaseTable> {
             return null;
         }
         String sqlRetrieve = getSqlRetrieve(object);
-        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+//        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
         String[] selectionArgs = null;
         if (!object.getColumnIndex2Value().isEmpty()) {
             selectionArgs = new String[]{String.valueOf(object.getColumnIndex2Value().get(getPrimaryKey()))};
         }
-        Cursor cursor = db.rawQuery(sqlRetrieve, selectionArgs);
+        Cursor cursor = DATABASE_INSTANCE.rawQuery(sqlRetrieve, selectionArgs);
         LinkedHashMap<Integer, Class<?>> i2t = object.getColumnIndex2Type();
         if (i2t.isEmpty()) {
             throw new RuntimeException("index 2 type correspond should be implemented first");
@@ -213,18 +225,6 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return sb.toString();
     }
 
-    protected String getSqlInsert(List<T> objects, String conflictAlgorithm) {
-        if (objects == null || objects.isEmpty()) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder();
-        for (T each : objects) {
-            sb.append(getSqlInsert(each, conflictAlgorithm)).append(";");
-        }
-        LLog.d(TAG, sb.toString());
-        return sb.toString();
-    }
-
     protected String getSqlDelete(T object) {
         if (object == null) {
             return null;
@@ -253,21 +253,6 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return sqlDel.toString();
     }
 
-    protected String getSqlDelete(List<T> objects) {
-        if (objects == null || objects.isEmpty()) {
-            return null;
-        }
-        StringBuilder sqlDel = new StringBuilder();
-        for (T object : objects) {
-            if (object == null) {
-                continue;
-            }
-            sqlDel.append(getSqlDelete(object)).append(";");
-        }
-        LLog.d(TAG, sqlDel.toString());
-        return sqlDel.toString();
-    }
-
     protected String getSqlRetrieve(T object) {
         if (object == null || object.getColumnIndex2Value().isEmpty()) {
             return "SELECT * FROM " + getTableName();
@@ -282,11 +267,15 @@ public abstract class AbstractDao<T extends IBaseTable> {
     }
 
     protected String getSqlUpdate(T object) {
+        if (object == null || object.getPrimaryValue() == null) {
+            return null;
+        }
         LinkedHashMap<Integer, Object> i2v = object.getColumnIndex2Value();
         if (object == null || i2v.isEmpty()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
+//        sb.append("UPDATE ").append("SET ")
         return sb.toString();
     }
 

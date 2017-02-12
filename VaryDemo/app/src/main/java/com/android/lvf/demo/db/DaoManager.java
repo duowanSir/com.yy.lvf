@@ -32,7 +32,7 @@ public class DaoManager {
         mContext = context;
         mOpenHelper = new LDatabaseHelper(mContext, LDatabaseHelper.NAME, LDatabaseHelper.VERSION);
 
-        mVideoInfoDao = new VideoInfoDao(mOpenHelper);
+        mVideoInfoDao = new VideoInfoDao();
     }
 
     private void assertContext() {

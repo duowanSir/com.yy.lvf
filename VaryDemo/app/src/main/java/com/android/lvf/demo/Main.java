@@ -35,6 +35,7 @@ import com.android.lvf.demo.db.DaoManager;
 import com.android.lvf.demo.db.table.VideoInfo;
 import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
+import com.android.lvf.demo.net.ActivityNet;
 import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
 
 import java.lang.ref.SoftReference;
@@ -124,6 +125,9 @@ public class Main extends Activity implements OnClickListener {
             testAlarm(BroadcastReceiverTest.class);
         } else if (v.getId() == R.id.alarm_service) {
             testAlarm(ServiceRemoteCompute.class);
+        } else if (v.getId() == R.id.test_net) {
+            Intent intent = new Intent(this, ActivityNet.class);
+            startActivity(intent);
         } else {
             throw new RuntimeException("unprocessed click event");
         }

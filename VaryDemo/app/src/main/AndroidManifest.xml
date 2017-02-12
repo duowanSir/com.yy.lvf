@@ -6,6 +6,9 @@
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <uses-sdk
         android:minSdkVersion="15"
@@ -56,13 +59,16 @@
 
         <activity
             android:name=".demo.event.HorizontalSlideActivity"
-            android:launchMode="standard"/>
+            android:launchMode="standard"
+            />
 
         <activity
             android:name=".demo.event.ActivityVideoList"
             android:launchMode="standard"/>
 
         <activity android:name=".demo.animation.ActivityPropertyAnimation"/>
+
+        <activity android:name=".demo.net.ActivityNet"/>
 
         <service
             android:name=".demo.component.ServiceRemoteCompute"
