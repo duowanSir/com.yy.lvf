@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -23,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.lvf.ICompute;
+import com.android.lvf.LLog;
 import com.android.lvf.R;
 import com.android.lvf.demo.animation.ActivityPropertyAnimation;
 import com.android.lvf.demo.component.ActivitySingleInstance;
@@ -35,8 +37,8 @@ import com.android.lvf.demo.db.DaoManager;
 import com.android.lvf.demo.db.table.VideoInfo;
 import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
-import com.android.lvf.demo.net.ActivityNet;
 import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
+import com.android.lvf.demo.surface.ActivityTestCamera;
 
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
@@ -46,7 +48,6 @@ import java.util.Map;
 public class Main extends Activity implements OnClickListener {
     TextView          mInfo;
     ServiceConnection mServiceConnection;
-    IBinder           mBinder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,16 +118,16 @@ public class Main extends Activity implements OnClickListener {
         } else if (v.getId() == R.id.insert) {
             long timeMs = System.currentTimeMillis();
             int timeS = (int) (timeMs / 1000);
-            DaoManager.getInstance().getVideoInfoDao().insert(new VideoInfo(timeMs, timeS, timeS, timeS, false));
+            DaoManager.getInstance().getVideoInfoDao().insert(new VideoInfo(timeMs, timeS, timeS, timeS, false, timeS));
         } else if (v.getId() == R.id.update) {
         } else if (v.getId() == R.id.retrieve) {
         } else if (v.getId() == R.id.delete) {
         } else if (v.getId() == R.id.alarm_receiver) {
             testAlarm(BroadcastReceiverTest.class);
-        } else if (v.getId() == R.id.alarm_service) {
-            testAlarm(ServiceRemoteCompute.class);
-        } else if (v.getId() == R.id.test_net) {
-            Intent intent = new Intent(this, ActivityNet.class);
+        } else if (v.getId() == R.id.show_camera_info) {
+            testCameraInfo();
+        } else if (v.getId() == R.id.test_camera) {
+            Intent intent = new Intent(this, ActivityTestCamera.class);
             startActivity(intent);
         } else {
             throw new RuntimeException("unprocessed click event");
@@ -150,6 +151,15 @@ public class Main extends Activity implements OnClickListener {
         }
         AlarmManager alarmManager = getSystemService(AlarmManager.class);
         alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime(), 10000, pi);
+    }
+
+    private void testCameraInfo() {
+        int cameraNum = Camera.getNumberOfCameras();
+        for (int i = 0; i < cameraNum; i++) {
+            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+            Camera.getCameraInfo(i, cameraInfo);
+            LLog.d("CameraInfo", "[" + cameraInfo.facing + ", " + cameraInfo.orientation + ", " + cameraInfo.canDisableShutterSound + "]");
+        }
     }
 
     @Override

@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -46,7 +47,13 @@ public class FavorDanmakuSurfaceView extends SurfaceView implements SurfaceHolde
         mContext = context;
         mRenderThread = new HandlerThread("favor_animation_renderer", Process.THREAD_PRIORITY_BACKGROUND);
 
+        setZOrderOnTop(true);
+        setWillNotCacheDrawing(true);
+        setDrawingCacheEnabled(false);
+        setWillNotDraw(true);
+        getHolder().setFormat(PixelFormat.TRANSPARENT);
         getHolder().addCallback(this);
+
     }
 
     @Override
@@ -146,7 +153,7 @@ public class FavorDanmakuSurfaceView extends SurfaceView implements SurfaceHolde
                     bd.setYSpeed(mFps, mDurationMs);
                     mProceed.add(bd);
                 } else {
-                    Bitmap bmp = BitmapFactory.decodeResource(res, mOtherDanmakuArray[Math.abs(centerRandom.nextInt()) % mOtherDanmakuArray.length]);
+                    Bitmap bmp = BitmapFactory.decodeResource(res, mOtherDanmakuArray[Math.abs(otherRandom.nextInt()) % mOtherDanmakuArray.length]);
                     BitmapDanmaku bd = new BitmapDanmaku(bmp, 100 * i, 200 * i, 100 * i, BitmapDanmaku.MAX_Y);
                     bd.setYSpeed(mFps, mDurationMs);
                     mProceed.add(bd);

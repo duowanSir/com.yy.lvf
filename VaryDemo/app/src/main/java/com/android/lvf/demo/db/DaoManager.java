@@ -1,9 +1,9 @@
 package com.android.lvf.demo.db;
 
 import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
 
 import com.android.lvf.demo.db.dao.VideoInfoDao;
+
 
 /**
  * Created by 烽 on 2016/12/14.
@@ -13,9 +13,6 @@ public class DaoManager {
     private static class HOLDER {
         private static DaoManager INSTANCE = new DaoManager();
     }
-
-    //    public static final int      TIME = 10;
-//    public static final TimeUnit UNIT = TimeUnit.MICROSECONDS;
     private Context         mContext;
     private LDatabaseHelper mOpenHelper;
 
@@ -31,7 +28,7 @@ public class DaoManager {
         }
         mContext = context;
         mOpenHelper = new LDatabaseHelper(mContext, LDatabaseHelper.NAME, LDatabaseHelper.VERSION);
-
+        AbstractDao.setDatabase(mOpenHelper.getWritableDatabase());
         mVideoInfoDao = new VideoInfoDao();
     }
 
@@ -44,15 +41,6 @@ public class DaoManager {
     public synchronized VideoInfoDao getVideoInfoDao() {
         assertContext();
         return mVideoInfoDao;
-    }
-
-    public synchronized SQLiteDatabase getReadableDb() {
-        assertContext();
-        return mOpenHelper.getReadableDatabase();
-    }
-
-    public synchronized SQLiteDatabase getWritableDb() {
-        return mOpenHelper.getWritableDatabase();
     }
 
     public static DaoManager getInstance() {
