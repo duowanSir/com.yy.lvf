@@ -252,4 +252,21 @@ public class LLog {
         printLog(Level.ASSERT, tag, msg, null);
     }
 
+
+    public static void printThreadStacks(String tag, String keyword) {
+        printStackTraces(Thread.currentThread().getStackTrace(), tag, keyword);
+    }
+
+    private static void printStackTraces(StackTraceElement[] traces, String tag, String keyword) {
+
+        printLog(Level.DEBUG, tag, "------------------------------------", null);
+        for (StackTraceElement e : traces) {
+            String info = e.toString();
+//            if (info.indexOf(keyword) != -1) {
+                printLog(Level.DEBUG, tag, info, null);
+//            }
+        }
+        printLog(Level.DEBUG, tag, "------------------------------------", null);
+    }
+
 }

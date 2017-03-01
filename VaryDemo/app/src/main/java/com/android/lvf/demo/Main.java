@@ -14,6 +14,9 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -35,12 +38,18 @@ import com.android.lvf.demo.component.BroadcastReceiverTest;
 import com.android.lvf.demo.component.ServiceRemoteCompute;
 import com.android.lvf.demo.db.DaoManager;
 import com.android.lvf.demo.db.table.VideoInfo;
+import com.android.lvf.demo.draw.MyReplacementSpan;
 import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
 import com.android.lvf.demo.surface.ActivityTestCamera;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.lang.ref.SoftReference;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,10 +88,11 @@ public class Main extends Activity implements OnClickListener {
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.standard) {
-            SoftReference<Map<Long, Long>> cache = new SoftReference<Map<Long, Long>>(new HashMap<Long, Long>());
-            cache.get().put(1l, 1l);
-            Intent intent = new Intent(this, ActivityStandard.class);
-            startActivity(intent);
+//            SoftReference<Map<Long, Long>> cache = new SoftReference<Map<Long, Long>>(new HashMap<Long, Long>());
+//            cache.get().put(1l, 1l);
+//            Intent intent = new Intent(this, ActivityStandard.class);
+//            startActivity(intent);
+            testSpan();
         } else if (v.getId() == R.id.single_top) {
             Intent intent = new Intent(this, ActivitySingleTop.class);
             startActivity(intent);
@@ -160,6 +170,20 @@ public class Main extends Activity implements OnClickListener {
             Camera.getCameraInfo(i, cameraInfo);
             LLog.d("CameraInfo", "[" + cameraInfo.facing + ", " + cameraInfo.orientation + ", " + cameraInfo.canDisableShutterSound + "]");
         }
+    }
+
+    private void test() {
+        FileOutputStream fos = null;
+        BufferedOutputStream bos = null;
+        FileInputStream fis = null;
+        BufferedInputStream bis = null;
+        ByteBuffer bb = null;
+    }
+
+    private void testSpan() {
+        SpannableStringBuilder ssb = new SpannableStringBuilder("012gggpplll好");
+        ssb.setSpan(new MyReplacementSpan(), 4,5, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        mInfo.setText(new SpannableString(ssb));
     }
 
     @Override
