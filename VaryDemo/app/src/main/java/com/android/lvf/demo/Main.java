@@ -26,6 +26,7 @@ import android.widget.Toast;
 import com.android.lvf.ICompute;
 import com.android.lvf.LLog;
 import com.android.lvf.R;
+import com.android.lvf.demo.algorithm.substate.LeastCoin;
 import com.android.lvf.demo.animation.ActivityPropertyAnimation;
 import com.android.lvf.demo.component.ActivitySingleInstance;
 import com.android.lvf.demo.component.ActivitySingleTask;
@@ -42,6 +43,7 @@ import com.android.lvf.demo.surface.ActivityTestCamera;
 
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 
@@ -74,6 +76,18 @@ public class Main extends Activity implements OnClickListener {
                 }
             }
         };
+
+        testLeastCoin();
+    }
+
+    private void testLeastCoin() {
+        LeastCoin leastCoin = new LeastCoin();
+        leastCoin.reachSum(11, new int[]{2,3,5});
+        Iterator<Map.Entry<Integer, Integer>> iterator = leastCoin.mSubStates.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, Integer> entry = iterator.next();
+            System.out.println(entry.getKey() + ", " + entry.getValue());
+        }
     }
 
     @Override
