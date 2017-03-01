@@ -46,6 +46,11 @@ public class VideoInfo implements IBaseTable,
     }
 
     @Override
+    public Long getPrimaryValue() {
+        return mOId;
+    }
+
+    @Override
     public LinkedHashMap<Integer, Object> getColumnIndex2Value() {
         if (mColumnIndex2Value == null) {
             mColumnIndex2Value = new LinkedHashMap<>();

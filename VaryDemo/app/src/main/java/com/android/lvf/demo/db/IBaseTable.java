@@ -10,6 +10,8 @@ public interface IBaseTable {
 
     LinkedHashMap<Integer, Object> getColumnIndex2Value();
 
+    Long getPrimaryValue();
+
     void putByColumnIndex2Value(int index, Object value);
 
     IBaseTable create();
