@@ -11,8 +11,9 @@ import java.util.LinkedHashMap;
  */
 public class VideoInfo implements IBaseTable,
         Serializable {
-    private static final String TAG        = VideoInfo.class.getSimpleName();
-    public static final  String TABLE_NAME = VideoInfo.class.getSimpleName();
+    public static final String   TABLE_NAME   = VideoInfo.class.getSimpleName();
+    public static final String[] COLUMN_NAMES = {"OId", "ServerTimestampS", "ClientTimestampS", "VisibleTimeS", "Uploaded", "Src"};
+    public static final String[] COLUMN_TYPES = {"INTEGER PRIMARY KEY", "INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"};
     /**
      * 表字段,请勿改动顺序
      */

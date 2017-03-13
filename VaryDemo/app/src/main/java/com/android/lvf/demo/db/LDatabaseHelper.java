@@ -11,7 +11,7 @@ import com.android.lvf.demo.db.dao.VideoInfoDao;
  * Created by 烽 on 2016/12/14.
  */
 
-class LDatabaseHelper extends SQLiteOpenHelper {
+public class LDatabaseHelper extends SQLiteOpenHelper {
     public static final int    VERSION = 1;
     public static final String NAME    = "com.duowan.orz.db";
     public static final String TAG     = LDatabaseHelper.class.getSimpleName();

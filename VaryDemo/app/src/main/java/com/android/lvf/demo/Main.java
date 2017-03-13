@@ -3,24 +3,17 @@ package com.android.lvf.demo;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.text.SpannableString;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
@@ -37,23 +30,19 @@ import com.android.lvf.demo.component.ActivitySingleTop;
 import com.android.lvf.demo.component.ActivityStandard;
 import com.android.lvf.demo.component.BroadcastReceiverTest;
 import com.android.lvf.demo.component.ServiceRemoteCompute;
-import com.android.lvf.demo.db.DaoManager;
+import com.android.lvf.demo.db.dao.VideoInfoDao;
 import com.android.lvf.demo.db.table.VideoInfo;
-import com.android.lvf.demo.draw.MyReplacementSpan;
 import com.android.lvf.demo.event.ActivityVideoList;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
 import com.android.lvf.demo.surface.ActivityTestCamera;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.lang.ref.SoftReference;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Main extends Activity implements OnClickListener {
@@ -91,7 +80,7 @@ public class Main extends Activity implements OnClickListener {
 
     private void testLeastCoin() {
         LeastCoin leastCoin = new LeastCoin();
-        leastCoin.reachSum(11, new int[]{2,3,5});
+        leastCoin.reachSum(11, new int[]{2, 3, 5});
         Iterator<Map.Entry<Integer, Integer>> iterator = leastCoin.mSubStates.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<Integer, Integer> entry = iterator.next();
@@ -102,11 +91,8 @@ public class Main extends Activity implements OnClickListener {
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.standard) {
-//            SoftReference<Map<Long, Long>> cache = new SoftReference<Map<Long, Long>>(new HashMap<Long, Long>());
-//            cache.get().put(1l, 1l);
-//            Intent intent = new Intent(this, ActivityStandard.class);
-//            startActivity(intent);
-            testSpan();
+            Intent intent = new Intent(this, ActivityStandard.class);
+            startActivity(intent);
         } else if (v.getId() == R.id.single_top) {
             Intent intent = new Intent(this, ActivitySingleTop.class);
             startActivity(intent);
@@ -140,9 +126,7 @@ public class Main extends Activity implements OnClickListener {
             Intent intent = new Intent(this, ActivityPropertyAnimation.class);
             startActivity(intent);
         } else if (v.getId() == R.id.insert) {
-            long timeMs = System.currentTimeMillis();
-            int timeS = (int) (timeMs / 1000);
-            DaoManager.getInstance().getVideoInfoDao().insert(new VideoInfo(timeMs, timeS, timeS, timeS, false, timeS));
+            testConcurrentDatabase();
         } else if (v.getId() == R.id.update) {
         } else if (v.getId() == R.id.retrieve) {
         } else if (v.getId() == R.id.delete) {
@@ -186,18 +170,71 @@ public class Main extends Activity implements OnClickListener {
         }
     }
 
-    private void test() {
-        FileOutputStream fos = null;
-        BufferedOutputStream bos = null;
-        FileInputStream fis = null;
-        BufferedInputStream bis = null;
-        ByteBuffer bb = null;
-    }
+    private void testConcurrentDatabase() {
+        final List<Integer> timeCost = new ArrayList<>();
+        final ExecutorService threadPool = Executors.newFixedThreadPool(10);
+        final VideoInfoDao vid = new VideoInfoDao();
+        for (int i = 1; i < 1001; i++) {
+            final int j = i;
+            Runnable task = new Runnable() {
+                @Override
+                public void run() {
+                    LLog.d("Main", "多任务,多事务");
+                    long timestamp = SystemClock.elapsedRealtime();
+                    if (j % 2 == 0) {
+                        VideoInfo vi = new VideoInfo(SystemClock.elapsedRealtime(), j, j, j, true, j);
+                        vid.insert(vi);
+                    } else {
+                        List<VideoInfo> vis = new ArrayList<>();
+                        for (int m = 1; m < 11; m++) {
+                            vis.add(new VideoInfo((long) (j * m), m, m, m, false, m));
+                        }
+                        vid.insert(vis, "OR REPLACE");
+                    }
+                    long timestamp1 = SystemClock.elapsedRealtime();
+                    synchronized (timeCost) {
+                        timeCost.add((int) (timestamp1 - timestamp));
+                        if (timeCost.size() == 1000) {
+                            int sum = 0;
+                            for (int i : timeCost
+                                    ) {
+                                sum += i;
+                            }
+                            LLog.d("Main", sum + "," + (float) sum / 1000);
+                        }
+                    }
+                }
+            };
+            threadPool.submit(task);
+        }
+        threadPool.submit(new Runnable() {
+            @Override
+            public void run() {
+                LLog.d("Main", "单任务,单事务");
+                long timestamp = SystemClock.elapsedRealtime();
+                List<VideoInfo> vis = new ArrayList<>();
+                for (int m = 1; m < 1000; m++) {
+                    vis.add(new VideoInfo(SystemClock.elapsedRealtime(), m, m, m, false, m));
+                }
+                vid.insert(vis, "OR REPLACE");
+                long timestamp1 = SystemClock.elapsedRealtime();
+                LLog.d("Main", "Transaction:" + (timestamp1 - timestamp));
+            }
+        });
 
-    private void testSpan() {
-        SpannableStringBuilder ssb = new SpannableStringBuilder("012gggpplll好");
-        ssb.setSpan(new MyReplacementSpan(), 4,5, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-        mInfo.setText(new SpannableString(ssb));
+        threadPool.submit(new Runnable() {
+            @Override
+            public void run() {
+                LLog.d("Main", "单任务,多事务");
+                long timestamp = SystemClock.elapsedRealtime();
+                for (int m = 1; m < 1000; m++) {
+                    VideoInfo vi = new VideoInfo(SystemClock.elapsedRealtime(), m, m, m, false, m);
+                    vid.insert(vi);
+                }
+                long timestamp1 = SystemClock.elapsedRealtime();
+                LLog.d("Main", "NonTransaction:" + (timestamp1 - timestamp));
+            }
+        });
     }
 
     @Override

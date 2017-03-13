@@ -11,23 +11,16 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by slowergun on 2016/12/14.
  */
 public abstract class AbstractDao<T extends IBaseTable> {
-    private static final String TAG = AbstractDao.class.getSimpleName();
-    private static SQLiteDatabase DATABASE_INSTANCE;
-
-    private final Object mLock = new Object();
-
-    public static void setDatabase(SQLiteDatabase sqLiteDatabase) {
-        DATABASE_INSTANCE = sqLiteDatabase;
-    }
-
-    public static SQLiteDatabase getDatabase() {
-        return DATABASE_INSTANCE;
-    }
+    private static final String                 TAG               = AbstractDao.class.getSimpleName();
+    private static final int                    TRY_LOCK_TIME_OUT = 100;
+    private final        ReentrantReadWriteLock readWriteLock     = new ReentrantReadWriteLock();
 
     protected String mPrimaryKey;
 
@@ -57,45 +50,66 @@ public abstract class AbstractDao<T extends IBaseTable> {
 
     public boolean insert(T object, String conflict) {
         String sqlInsert = getSqlInsert(object, conflict);
-        synchronized (mLock) {
-            try {
-                DATABASE_INSTANCE.beginTransaction();
-                DATABASE_INSTANCE.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
-                DATABASE_INSTANCE.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            } finally {
-                DATABASE_INSTANCE.endTransaction();
-            }
+        if (TextUtils.isEmpty(sqlInsert)) {
+            LLog.d(TAG, "插入语句为空");
+            return false;
         }
-        return true;
+        SQLiteDatabase database = DatabaseManager.getInstance().getWritableDatabase();
+        try {
+            if (readWriteLock.writeLock().tryLock(TRY_LOCK_TIME_OUT, TimeUnit.MILLISECONDS)) {
+                try {
+                    readWriteLock.writeLock().lock();
+                    database.beginTransaction();
+                    database.execSQL(sqlInsert, object.getColumnIndex2Value().values().toArray());
+                    database.setTransactionSuccessful();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                } finally {
+                    database.endTransaction();
+                    readWriteLock.writeLock().unlock();
+                }
+                return true;
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return false;
     }
 
     /**
-     * Multiple statements separated by semicolons are not supported.
+     * 不支持分号隔开的数据库语句
      */
     public boolean insert(List<T> objects, String conflict) {
         if (objects == null || objects.isEmpty()) {
             return false;
         }
-        synchronized (mLock) {
-            try {
-                DATABASE_INSTANCE.beginTransaction();
-                for (T each:
-                     objects) {
-                    String sqlInsert = getSqlInsert(each, conflict);
-                    DATABASE_INSTANCE.execSQL(sqlInsert, each.getColumnIndex2Value().values().toArray());
+        SQLiteDatabase database = DatabaseManager.getInstance().getWritableDatabase();
+        try {
+            if (readWriteLock.writeLock().tryLock(TRY_LOCK_TIME_OUT, TimeUnit.MILLISECONDS)) {
+                try {
+                    readWriteLock.writeLock().lock();
+                    database.beginTransaction();
+                    for (int i = 0; i < objects.size(); i++) {
+                        T j = objects.get(i);
+                        String sqlInsert = getSqlInsert(j, conflict);
+                        if (TextUtils.isEmpty(sqlInsert)) {
+                            continue;
+                        }
+                        database.execSQL(sqlInsert, j.getColumnIndex2Value().values().toArray());
+                    }
+                    database.setTransactionSuccessful();
+                } finally {
+                    readWriteLock.writeLock().unlock();
+                    database.endTransaction();
                 }
-                DATABASE_INSTANCE.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            } finally {
-                DATABASE_INSTANCE.endTransaction();
+                return true;
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        return true;
+        return false;
     }
 
     public boolean delete(T object) {
@@ -103,73 +117,55 @@ public abstract class AbstractDao<T extends IBaseTable> {
         if (TextUtils.isEmpty(sqlDelete)) {
             return false;
         }
-        synchronized (DATABASE_INSTANCE) {
-            try {
-                DATABASE_INSTANCE.beginTransaction();
-                DATABASE_INSTANCE.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
-                DATABASE_INSTANCE.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            } finally {
-                DATABASE_INSTANCE.endTransaction();
+        SQLiteDatabase database = DatabaseManager.getInstance().getWritableDatabase();
+        try {
+            if (readWriteLock.writeLock().tryLock(TRY_LOCK_TIME_OUT, TimeUnit.MILLISECONDS)) {
+                try {
+                    readWriteLock.writeLock().lock();
+                    database.beginTransaction();
+                    database.execSQL(sqlDelete, object.getColumnIndex2Value().values().toArray());
+                    database.setTransactionSuccessful();
+                } finally {
+                    database.endTransaction();
+                    readWriteLock.writeLock().unlock();
+                }
+                return true;
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        return true;
+        return false;
     }
-
-//    public boolean delete(List<T> tObjects) {
-//        String sqlDel = getSqlDelete(tObjects);
-//        if (TextUtils.isEmpty(sqlDel)) {
-//            return false;
-//        }
-//        List<Object> argObjects = new ArrayList<>();
-//        for (T each : tObjects) {
-//            if (each == null) {
-//                continue;
-//            }
-//            argObjects.addAll(each.getColumnIndex2Value().values());
-//        }
-//        SQLiteDatabase db = DaoManager.getInstance().getWritableDatabase();
-//        try {
-//            db.beginTransaction();
-//            db.execSQL(sqlDel, argObjects.toArray());
-//            db.setTransactionSuccessful();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return false;
-//        } finally {
-//            db.endTransaction();
-//        }
-//        return true;
-//    }
 
     public boolean delete(List<T> tObjects) {
         if (tObjects == null || tObjects.isEmpty()) {
-            return true;
+            return false;
         }
-        synchronized (DATABASE_INSTANCE) {
-            try {
-                DATABASE_INSTANCE.beginTransaction();
-                for (T each : tObjects) {
-                    if (each == null) {
-                        continue;
+        SQLiteDatabase database = DatabaseManager.getInstance().getWritableDatabase();
+        try {
+            if (readWriteLock.writeLock().tryLock(TRY_LOCK_TIME_OUT, TimeUnit.MILLISECONDS)) {
+                try {
+                    readWriteLock.writeLock().lock();
+                    database.beginTransaction();
+                    for (int i = 0; i < tObjects.size(); i++) {
+                        T j = tObjects.get(i);
+                        String sqlDelete = getSqlDelete(j);
+                        if (TextUtils.isEmpty(sqlDelete)) {
+                            continue;
+                        }
+                        database.execSQL(sqlDelete, j.getColumnIndex2Value().values().toArray());
                     }
-                    String sqlDelete = getSqlDelete(each);
-                    if (TextUtils.isEmpty(sqlDelete)) {
-                        continue;
-                    }
-                    DATABASE_INSTANCE.execSQL(sqlDelete, each.getColumnIndex2Value().values().toArray());
+                    database.setTransactionSuccessful();
+                    return true;
+                } finally {
+                    database.endTransaction();
+                    readWriteLock.writeLock().unlock();
                 }
-                DATABASE_INSTANCE.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            } finally {
-                DATABASE_INSTANCE.endTransaction();
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        return true;
+        return false;
     }
 
 
@@ -182,22 +178,29 @@ public abstract class AbstractDao<T extends IBaseTable> {
     }
 
     public List<T> retrieve(T object) {
-        if (object == null) {
-            return null;
-        }
         String sqlRetrieve = getSqlRetrieve(object);
         String[] selectionArgs = null;
         if (!object.getColumnIndex2Value().isEmpty()) {
-            selectionArgs = new String[]{String.valueOf(object.getColumnIndex2Value().get(getPrimaryKey()))};
+            selectionArgs = new String[]{String.valueOf(object.getPrimaryValue())};
         }
         Cursor cursor = null;
-        synchronized (DATABASE_INSTANCE) {
-            cursor = DATABASE_INSTANCE.rawQuery(sqlRetrieve, selectionArgs);
+        SQLiteDatabase database=DatabaseManager.getInstance().getReadableDatabase();
+        try {
+            if (readWriteLock.readLock().tryLock(TRY_LOCK_TIME_OUT,TimeUnit.MILLISECONDS)){
+                try{
+                    readWriteLock.readLock().lock();
+                    database.beginTransaction();
+                    cursor=database.rawQuery(sqlRetrieve,selectionArgs);
+                    database.setTransactionSuccessful();
+                }finally {
+                    database.endTransaction();
+                    readWriteLock.readLock().unlock();
+                }
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         LinkedHashMap<Integer, Class<?>> i2t = object.getColumnIndex2Type();
-        if (i2t.isEmpty()) {
-            throw new RuntimeException("index 2 type correspond should be implemented first");
-        }
         List<T> result = new ArrayList<>();
         try {
             while (cursor.moveToNext()) {
@@ -225,7 +228,6 @@ public abstract class AbstractDao<T extends IBaseTable> {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         } finally {
             cursor.close();
         }
@@ -267,18 +269,6 @@ public abstract class AbstractDao<T extends IBaseTable> {
         return sb.toString();
     }
 
-    protected String getSqlInsert(List<T> objects, String conflictAlgorithm) {
-        if (objects == null || objects.isEmpty()) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder();
-        for (T each : objects) {
-            sb.append(getSqlInsert(each, conflictAlgorithm)).append(";");
-        }
-        LLog.d(TAG, sb.toString());
-        return sb.toString();
-    }
-
     protected String getSqlDelete(T object) {
         if (object == null) {
             return null;
@@ -302,21 +292,6 @@ public abstract class AbstractDao<T extends IBaseTable> {
             sqlDel.append(getColumnNames()[entry.getKey()]).
                     append(" = ").
                     append("?");
-        }
-        LLog.d(TAG, sqlDel.toString());
-        return sqlDel.toString();
-    }
-
-    protected String getSqlDelete(List<T> objects) {
-        if (objects == null || objects.isEmpty()) {
-            return null;
-        }
-        StringBuilder sqlDel = new StringBuilder();
-        for (T object : objects) {
-            if (object == null) {
-                continue;
-            }
-            sqlDel.append(getSqlDelete(object)).append(";");
         }
         LLog.d(TAG, sqlDel.toString());
         return sqlDel.toString();
