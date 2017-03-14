@@ -2,19 +2,20 @@ package com.yy.lvf.ctm;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
+import com.google.gson.Gson;
 import com.yy.lvf.ctm.Session.SessionType;
 
 public class CtmParamHelper {
-	private String				inputFilePath;			//待处理文件路径
-	private String				minuteSuffix;			//分后缀
-	private String				lightningSuffix;		//简报后缀
-	private int					maxTalkMinutes;			//最大会谈时长
-	private int					minTalkMinutes;			//最短会谈时长
-	private int					lightningMinutes;		//简会时长
-	private int					minNetworkingStartTime;	//最短网络开始时长
-	private List<SessionParam>	sessionParams;			//会话参数
+	private String				inputFilePath;		//待处理文件路径
+	private String				minuteSuffix;		//分后缀
+	private String				lightningSuffix;	//简报后缀
+	private int					maxTalkMinutes;		//最大会谈时长
+	private int					minTalkMinutes;		//最短会谈时长
+	private int					lightningMinutes;	//简会时长
+	private List<SessionParam>	sessionParams;		//会话参数
 
 	private CtmParamHelper() {
 		/*
@@ -27,7 +28,6 @@ public class CtmParamHelper {
 		maxTalkMinutes = 180;
 		minTalkMinutes = 1;
 		lightningMinutes = 5;
-		minNetworkingStartTime = 1600;
 		sessionParams = new ArrayList<>();
 		SessionParam sp = new SessionParam(1, SessionType.AM, 540, 720);
 		sessionParams.add(sp);
@@ -83,14 +83,6 @@ public class CtmParamHelper {
 		this.lightningMinutes = lightningMinutes;
 	}
 
-	public int getMinNetworkingStartTime() {
-		return minNetworkingStartTime;
-	}
-
-	public void setMinNetworkingStartTime(int minNetworkingStartTime) {
-		this.minNetworkingStartTime = minNetworkingStartTime;
-	}
-
 	public List<SessionParam> getSessionParams() {
 		return sessionParams;
 	}
@@ -100,7 +92,31 @@ public class CtmParamHelper {
 	}
 
 	public void init() {
-
+		String properties = IOHelper.readSessionPacksackProperties();
+		if (properties == null || properties.trim().length() <=0)
+			return;
+		Gson g = new Gson();
+		try {
+			CtmParamHelper param = g.fromJson(properties, CtmParamHelper.class);
+			inputFilePath = param.inputFilePath;
+			minuteSuffix = param.minuteSuffix;
+			lightningSuffix = param.lightningSuffix;
+			maxTalkMinutes = param.maxTalkMinutes;
+			minTalkMinutes = param.minTalkMinutes;
+			lightningMinutes = param.lightningMinutes;
+			sessionParams = param.sessionParams;
+			Iterator<SessionParam> iterator = param.sessionParams.iterator();
+			while (iterator.hasNext()) {
+				CtmParamHelper.SessionParam sessionParam = (CtmParamHelper.SessionParam) iterator.next();
+				if (sessionParam == null) {
+					iterator.remove();
+					continue;
+				}
+				sessionParam.setTypeStr(sessionParam.getTypeStr());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static CtmParamHelper getInstance() {
@@ -114,6 +130,7 @@ public class CtmParamHelper {
 	public static class SessionParam {
 		int			id;
 		SessionType	type;
+		String		typeStr;
 		int			startTime;
 		int			endTime;
 
@@ -155,6 +172,26 @@ public class CtmParamHelper {
 		public void setEndTime(int endTime) {
 			this.endTime = endTime;
 		}
+
+		public String getTypeStr() {
+			return typeStr;
+		}
+
+		public void setTypeStr(String typeStr) throws IllegalArgumentException {
+			this.typeStr = typeStr;
+			if (typeStr == null) {
+				throw new IllegalArgumentException("会议类型不能为空");
+			}
+			typeStr = typeStr.toUpperCase();
+			if (SessionType.AM.getSessionType().equals(typeStr)) {
+				type = SessionType.AM;
+			} else if (SessionType.PM.getSessionType().equals(typeStr)) {
+				type = SessionType.PM;
+			} else {
+				throw new IllegalArgumentException("会议类型和SessionType定义的不相符");
+			}
+		}
+		
 	}
 
 }

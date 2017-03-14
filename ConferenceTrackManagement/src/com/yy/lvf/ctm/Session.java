@@ -58,6 +58,9 @@ public class Session {
 
 	public void print() {
 		int currentTime = startTimestamp;
+		if (talks == null || talks.isEmpty()) {// 上午刚好把会谈都安排完
+			return;
+		}
 		for (Talk talk : talks) {
 			String s = formatTimestamp(currentTime);
 			talk.print(s);
@@ -66,7 +69,11 @@ public class Session {
 		if (type == SessionType.AM) {
 			System.out.println("12:00 PM Lunch");
 		} else if (type == SessionType.PM) {
-			System.out.println(formatTimestamp(lastTalkEndTimestamp) + " Networking Event");
+			if (lastTalkEndTimestamp < 960) {
+				System.out.println("04:00 PM Networking Event");
+			} else {
+				System.out.println(formatTimestamp(lastTalkEndTimestamp) + " Networking Event");
+			}
 		}
 	}
 

@@ -1,16 +1,43 @@
 package com.yy.lvf.ctm;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class IOHelper {
-	//	public static String readSessionPacksackProperties(){
-	//		File
-	//	}
+	public static String readSessionPacksackProperties() {
+		File propertiesFile = new File("res" + File.separator + "session.packsack.properties");
+		if (!propertiesFile.exists()) {
+			return null;
+		}
+		RandomAccessFile raf = null;
+		StringBuilder sb = new StringBuilder();
+		try {
+			raf = new RandomAccessFile(propertiesFile, "r");
+			String line;
+			while ((line = raf.readLine()) != null) {
+				sb.append(line);
+			}
+			return sb.toString();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (raf != null) {
+				try {
+					raf.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return null;
+	}
 
 	public static List<String> readInput(String filename) {
 		if (filename == null || "".equals(filename)) {
@@ -40,9 +67,9 @@ public class IOHelper {
 		int maxTalkTime = CtmParamHelper.getInstance().getMaxTalkMinutes();
 		int minTalkTime = CtmParamHelper.getInstance().getMinTalkMinutes();
 		int talktime = 0;
+		Pattern pattern = Pattern.compile("(.*)(\\s){1}([0-2]?[0-9]?[0-9]{1}"+CtmParamHelper.getInstance().getMinuteSuffix()+"|"+CtmParamHelper.getInstance().getLightningSuffix()+")\\b");
 		for (String talk : talkList) {
 			talk = talk.replaceAll("\\s+", " ").trim();
-			Pattern pattern = Pattern.compile("(.*)(\\s){1}([0-2]?[0-9]?[0-9]{1}min|lightning)\\b");
 			Matcher matcher = pattern.matcher(talk);
 			if (!matcher.matches()) {
 				continue;
