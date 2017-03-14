@@ -46,6 +46,7 @@ public class Main {
 				Track track = new Track();
 				trackList.add(track);
 				while (iterator.hasNext() && talkList.size() > 0) {// Talk总是由AM Session往PM Session放
+					// 有可能只能填满一个session
 					SessionParam sessionParam = (SessionParam) iterator.next();
 					Session session = new Session();
 					session.setType(sessionParam.getType());

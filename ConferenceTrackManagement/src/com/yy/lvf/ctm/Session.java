@@ -70,6 +70,7 @@ public class Session {
 			System.out.println("12:00 PM Lunch");
 		} else if (type == SessionType.PM) {
 			if (lastTalkEndTimestamp < 960) {
+				// Networking Event只能下午四点之后才能开始
 				System.out.println("04:00 PM Networking Event");
 			} else {
 				System.out.println(formatTimestamp(lastTalkEndTimestamp) + " Networking Event");
