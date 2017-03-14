@@ -8,9 +8,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class IOHelper {
+	//	public static String readSessionPacksackProperties(){
+	//		File
+	//	}
+
 	public static List<String> readInput(String filename) {
 		if (filename == null || "".equals(filename)) {
-			filename = CtmParamHelper.getInstance().getInputfilepath();
+			filename = CtmParamHelper.getInstance().getInputFilePath();
 		}
 		List<String> inputList = new ArrayList<String>();
 		try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
@@ -45,11 +49,14 @@ public class IOHelper {
 			}
 			talktime = generateTalkTime(matcher.group(3));
 			if (talktime <= maxTalkTime && talktime >= minTalkTime) {
-				validTalksList.add(new Talk(matcher.group(1), talktime));
+				validTalksList.add(new Talk(talk, talktime));
 			} else {
 				System.out.println("IOHelper.generateValidTalks():" + talk + " 超出时长范围");
 			}
 		}
+		//		for (Talk talk : validTalksList) {
+		//			System.out.println(talk.toString());
+		//		}
 		return validTalksList;
 	}
 

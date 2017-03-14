@@ -1,26 +1,23 @@
 package com.yy.lvf.ctm;
 
 /**
- * Talk对象,对(Sit Down and Write 30min)的抽象
+ * 会谈对象,对例如(Sit Down and Write 30min)的抽象
  */
 public class Talk {
-	private String	lineStr;	// 原始数据,用于打印;
+	private String	input;		// 原始数据,用于打印;
 	private int		duration;	// 持续时间
 
-	public Talk() {
-	}
-
-	public Talk(String lineStr, int durationMin) {
-		this.lineStr = lineStr;
+	public Talk(String input, int durationMin) {
+		this.input = input;
 		this.duration = durationMin;
 	}
 
-	public String getLineStr() {
-		return lineStr;
+	public String getInput() {
+		return input;
 	}
 
-	public void setLineStr(String lineStr) {
-		this.lineStr = lineStr;
+	public void setInput(String input) {
+		this.input = input;
 	}
 
 	public int getDuration() {
@@ -29,6 +26,13 @@ public class Talk {
 
 	public void setDuration(int durationMin) {
 		this.duration = durationMin;
+	}
+
+	public void print(Object talkStartTimestamp) {
+		if (talkStartTimestamp == null) {
+			return;
+		}
+		System.out.println("" + talkStartTimestamp + " " + input);
 	}
 
 }

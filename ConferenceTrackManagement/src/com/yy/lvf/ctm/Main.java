@@ -9,20 +9,20 @@ import com.yy.lvf.ctm.CtmParamHelper.SessionParam;
 public class Main {
 
 	public static void main(String[] args) {
+
 		String inputfile = null;
 		if (args.length > 0) {
 			inputfile = args[0];
 		}
 		List<String> inputStrList = IOHelper.readInput(inputfile);
-		List<Track> trackList = getTrackList(inputStrList);
 
-		System.out.println("\nInput : \n");
+		System.out.println("\nInput :");
 		for (String s : inputStrList) {
 			System.out.println(s);
 		}
-		System.out.println("\nOutput : \n");
+		List<Track> trackList = getTrackList(inputStrList);
+		System.out.println("\nOutput :");
 		for (Track i : trackList) {
-			System.out.println("Track : " + i.getID() + "\n");
 			i.print();
 		}
 	}
@@ -31,17 +31,20 @@ public class Main {
 		List<Track> trackList = new ArrayList<Track>();
 		try {
 			List<Talk> talkList = IOHelper.generateValidTalks(inviteeList);
-			List<SessionParam> sessionlist = CtmParamHelper.getInstance().getSessionlist();
+			List<SessionParam> sessionlist = CtmParamHelper.getInstance().getSessionParams();
 			while (talkList.size() > 0) {// 有多余的Talk就往Session里面装
 				Iterator<SessionParam> iterator = sessionlist.iterator();
 				Track track = new Track();
 				trackList.add(track);
 				while (iterator.hasNext()) {// Talk总是由AM Session往PM Session放
-					SessionParam SessionParam = (SessionParam) iterator.next();
+					SessionParam sessionParam = (SessionParam) iterator.next();
 					Session session = new Session();
+					session.setType(sessionParam.getType());
+					session.setStartTimestamp(sessionParam.getStartTime());
+					session.setEndTimestamp(sessionParam.getEndTime());
 					track.addNewSession(session);
 					if (talkList.size() > 0)
-						session.schedule(talkList);
+						session.fillSessionWithTalk(talkList);
 				}
 			}
 		} catch (Exception e) {
