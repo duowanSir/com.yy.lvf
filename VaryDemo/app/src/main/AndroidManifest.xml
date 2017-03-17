@@ -62,6 +62,9 @@
         <activity
             android:name=".demo.event.ActivityVideoList"
             android:launchMode="standard"/>
+        <activity
+            android:name=".demo.event.ActivityVideoList1"
+            android:launchMode="standard"/>
 
         <activity android:name=".demo.animation.ActivityPropertyAnimation"/>
 

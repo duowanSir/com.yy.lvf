@@ -33,6 +33,7 @@ import com.android.lvf.demo.component.ServiceRemoteCompute;
 import com.android.lvf.demo.db.dao.VideoInfoDao;
 import com.android.lvf.demo.db.table.VideoInfo;
 import com.android.lvf.demo.event.ActivityVideoList;
+import com.android.lvf.demo.event.ActivityVideoList1;
 import com.android.lvf.demo.event.HorizontalSlideActivity;
 import com.android.lvf.demo.surface.ActivitySurfaceCanvasUse;
 import com.android.lvf.demo.surface.ActivityTestCamera;
@@ -117,7 +118,7 @@ public class Main extends Activity implements OnClickListener {
             Intent intent = new Intent(this, ActivitySurfaceCanvasUse.class);
             startActivity(intent);
         } else if (v.getId() == R.id.video_list) {
-            Intent intent = new Intent(this, ActivityVideoList.class);
+            Intent intent = new Intent(this, ActivityVideoList1.class);
             startActivity(intent);
         } else if (v.getId() == R.id.horizontal_slide) {
             Intent intent = new Intent(this, HorizontalSlideActivity.class);
